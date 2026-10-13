@@ -1,639 +1,2214 @@
 <!doctype html>
-<html lang="pt-BR" data-theme="light">
+<html lang="pt-BR" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Shot Timer</title>
+<title>Shot Timer Profissional</title>
 <style>
-:root{--bg:#E8EAE5;--ink:#1E2521;--mute:#6A736C;--line:#CBD0C8;--tint:#DCDFD8;--sig:#D93A26}
-:root[data-theme="dark"]{--bg:#121613;--ink:#E7EAE4;--mute:#8A938C;--line:#2B322D;--tint:#1B211D;--sig:#F0553F}
+:root{
+  --bg:#0e120f;
+  --card:#161c18;
+  --card-hover:#1d2520;
+  --ink:#f0f4f1;
+  --mute:#8b998e;
+  --line:#28332b;
+  --tint:#1d2620;
+  --sig:#ff4d36;
+  --sig-glow:rgba(255,77,54,0.3);
+  --accent:#22c55e;
+  --accent-glow:rgba(34,197,94,0.25);
+  --gold:#eab308;
+  --cyan:#06b6d4;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+:root[data-theme="light"]{
+  --bg:#f4f6f3;
+  --card:#ffffff;
+  --card-hover:#f0f2ee;
+  --ink:#141a16;
+  --mute:#647468;
+  --line:#dce1db;
+  --tint:#e9ede8;
+  --sig:#e11d48;
+  --sig-glow:rgba(225,29,72,0.25);
+  --accent:#16a34a;
+  --accent-glow:rgba(22,163,74,0.2);
+  --gold:#ca8a04;
+  --cyan:#0891b2;
+}
+
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
 html,body{height:100%;background:var(--bg);color:var(--ink);overscroll-behavior:none}
-body{font:16px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;font-variant-numeric:tabular-nums}
-button,input{font:inherit;color:inherit}
+body{font:15px/1.35 var(--font);-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
 button{background:none;border:0;cursor:pointer}
-button:disabled{cursor:default}
-:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding-top:env(safe-area-inset-top)}
-.view{display:none;flex:1;min-height:0;flex-direction:column;padding:6px 20px 14px}
+button:disabled{opacity:0.4;cursor:default}
+
+#app{
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  max-width:580px;
+  margin:0 auto;
+  padding-top:env(safe-area-inset-top);
+}
+
+.view{display:none;flex:1;min-height:0;flex-direction:column;padding:6px 16px 12px;overflow-y:auto}
 .view.active{display:flex}
 
-/* Timer */
-.top{display:flex;align-items:center;justify-content:space-between;height:48px;flex:none}
-.status{font-size:15px;font-weight:500;color:var(--mute)}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px}
-.seg button{padding:6px 14px;border-radius:999px;font-size:14px;color:var(--mute)}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.seg button:disabled{opacity:.4}
-.stage{flex:1;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
-.clock{font-size:clamp(76px,28vw,150px);font-weight:300;letter-spacing:-.04em;line-height:1;transition:color .4s}
-.clock span{color:var(--mute);transition:color .4s}
-.stage.dim .clock{opacity:.4}
-.stage.hit .clock,.stage.hit .clock span{color:var(--sig);transition:none}
-.sub{height:40px;display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:15px}
-.sub button{width:40px;height:40px;border-radius:50%;font-size:28px;line-height:1;color:var(--ink)}
-#sub-lab{min-width:210px;text-align:center}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);padding:12px 0 10px;flex:none}
-.stats div{display:flex;flex-direction:column;gap:2px}
-.stats b{font-size:20px;font-weight:600}
-.stats span{font-size:12.5px;color:var(--mute)}
-.shots{flex:0 1 30%;min-height:84px;overflow-y:auto;border-top:1px solid var(--line)}
-.shots .head,.shots li{display:grid;grid-template-columns:44px 1fr auto;align-items:baseline;padding:9px 4px}
-.shots .head{position:sticky;top:0;background:var(--bg);font-size:12.5px;color:var(--mute)}
-.shots ol{list-style:none}
-.shots li{border-bottom:1px solid var(--line);font-size:20px;font-weight:500}
-.shots li .n{font-size:14px;color:var(--mute);font-weight:400}
-.shots li .tt{font-size:15px;color:var(--mute);font-weight:400}
-.shots li.sel{box-shadow:inset 3px 0 0 var(--sig);background:var(--tint)}
-.shots .empty{padding:18px 4px;color:var(--mute);font-size:14px}
-.par{display:flex;align-items:center;gap:10px;height:58px;border-top:1px solid var(--line);flex:none}
-.par .lbl{flex:1;font-weight:500}
-.par .step{width:40px;height:40px;border:1px solid var(--line);border-radius:12px;font-size:22px;line-height:1}
-.par .num{width:70px;text-align:center;font-size:20px;font-weight:500;background:none;border:0;border-bottom:1px solid var(--line);padding:4px 0;-moz-appearance:textfield}
-.par .unit{color:var(--mute);margin-left:-4px}
-.par.off .num,.par.off .step,.par.off .unit{opacity:.35}
-.sw{-webkit-appearance:none;appearance:none;width:46px;height:28px;border-radius:14px;background:var(--line);position:relative;transition:background .2s;flex:none;cursor:pointer}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--bg);transition:transform .2s}
-.sw:checked{background:var(--ink)}
+/* Header & Barra Superior */
+.top-bar{display:flex;align-items:center;justify-content:space-between;height:48px;flex:none;gap:8px}
+.pill-badge{
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  padding:4px 10px;
+  border-radius:999px;
+  background:var(--card);
+  border:1px solid var(--line);
+  color:var(--mute);
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.pill-badge.active{color:var(--sig);border-color:var(--sig);background:rgba(255,77,54,0.1)}
+.pill-badge.go{color:var(--accent);border-color:var(--accent);background:var(--accent-glow)}
+
+.drill-selector{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:14px;
+  font-weight:600;
+  color:var(--ink);
+  background:var(--card);
+  border:1px solid var(--line);
+  padding:5px 12px;
+  border-radius:12px;
+  max-width:180px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.seg-group{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--card);flex:none}
+.seg-group button{padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--mute);transition:all 0.15s}
+.seg-group button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* Relógio do Timer */
+.stage{
+  flex:1;
+  min-height:140px;
+  max-height:220px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  touch-action:manipulation;
+  border-radius:20px;
+  background:radial-gradient(ellipse at center, var(--tint) 0%, transparent 75%);
+  margin:2px 0 6px;
+}
+.clock-display{
+  font-size:clamp(68px,23vw,120px);
+  font-weight:300;
+  letter-spacing:-0.05em;
+  line-height:0.95;
+  color:var(--ink);
+  text-align:center;
+}
+.clock-display span{color:var(--mute);font-weight:200}
+.stage.hit .clock-display{color:var(--sig);text-shadow:0 0 30px var(--sig-glow)}
+.stage.hit .clock-display span{color:var(--sig)}
+.stage.flash{animation:stageFlash 0.12s ease-out}
+@keyframes stageFlash{0%{background:var(--sig-glow)}100%{background:transparent}}
+
+/* Comparador de Recorde e Subtítulo */
+.status-sub{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  font-size:13.5px;
+  color:var(--mute);
+  margin-top:4px;
+  height:24px;
+}
+.delta-badge{
+  font-size:12px;
+  font-weight:700;
+  padding:2px 8px;
+  border-radius:6px;
+  background:var(--card);
+  border:1px solid var(--line);
+}
+.delta-badge.better{background:var(--accent-glow);color:var(--accent);border-color:var(--accent)}
+.delta-badge.worse{background:rgba(255,77,54,0.15);color:var(--sig);border-color:var(--sig)}
+
+/* Onda de Áudio / Waveform em Tempo Real */
+.waveform-box{
+  position:relative;
+  height:36px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:6px;
+  flex:none;
+}
+#wave-canvas{width:100%;height:100%;display:block}
+.wave-label{
+  position:absolute;
+  left:8px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:11px;
+  font-weight:600;
+  color:var(--mute);
+  letter-spacing:0.04em;
+  pointer-events:none;
+  text-transform:uppercase;
+}
+.wave-peak-tag{
+  position:absolute;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:11px;
+  font-weight:700;
+  color:var(--sig);
+  background:rgba(255,77,54,0.15);
+  padding:1px 6px;
+  border-radius:4px;
+  opacity:0;
+  transition:opacity 0.25s;
+}
+.wave-peak-tag.on{opacity:1}
+
+/* Estatísticas principais (Grid 4 colunas) */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  padding:8px 0;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  flex:none;
+}
+.stat-item{display:flex;flex-direction:column;gap:1px}
+.stat-item b{font-size:18px;font-weight:700;color:var(--ink)}
+.stat-item span{font-size:11.5px;color:var(--mute);text-transform:uppercase;letter-spacing:0.03em}
+
+/* Linha secundária de métricas: Cadência e Descarte */
+.metrics-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12.5px;
+  color:var(--mute);
+  padding:4px 2px;
+  flex:none;
+}
+.metrics-row span b{color:var(--ink);font-weight:600}
+
+/* Lista de disparos com descarte */
+.shots-container{
+  flex:1;
+  min-height:90px;
+  overflow-y:auto;
+  margin:4px 0;
+  border-radius:12px;
+  background:var(--card);
+  border:1px solid var(--line);
+}
+.shots-header{
+  display:grid;
+  grid-template-columns:36px 1fr 1fr 40px;
+  padding:8px 10px;
+  font-size:11.5px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color:var(--mute);
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:0;
+  background:var(--card);
+  z-index:2;
+}
+.shot-list{list-style:none}
+.shot-row{
+  display:grid;
+  grid-template-columns:36px 1fr 1fr 40px;
+  align-items:center;
+  padding:8px 10px;
+  border-bottom:1px solid var(--line);
+  font-size:17px;
+  font-weight:600;
+  transition:background 0.1s;
+}
+.shot-row:last-child{border-bottom:none}
+.shot-row .num{font-size:13px;color:var(--mute);font-weight:500}
+.shot-row .split{color:var(--ink)}
+.shot-row .total{color:var(--mute);font-weight:500;font-size:15px}
+.shot-row.discarded{opacity:0.4;text-decoration:line-through;background:rgba(255,77,54,0.05)}
+.shot-row.discarded .split,.shot-row.discarded .total{color:var(--sig)}
+.shot-row.fastest .split{color:var(--accent)}
+.btn-discard{
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--mute);
+  font-size:14px;
+  transition:all 0.15s;
+}
+.btn-discard:hover{background:var(--tint);color:var(--sig)}
+.shot-row.discarded .btn-discard{color:var(--accent)}
+
+.empty-shots{padding:24px 12px;text-align:center;color:var(--mute);font-size:13.5px}
+
+/* Seção de Par Time e Presets */
+.par-section{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:8px 12px;
+  margin-top:4px;
+  flex:none;
+}
+.par-header-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.par-header-row .lbl{font-weight:600;font-size:14px}
+.par-controls{display:flex;align-items:center;gap:6px}
+.par-btn{
+  width:32px;
+  height:32px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  font-size:18px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--tint);
+}
+.par-input{
+  width:58px;
+  text-align:center;
+  font-size:17px;
+  font-weight:700;
+  background:none;
+  border:0;
+  border-bottom:1.5px solid var(--line);
+  padding:2px 0;
+  color:var(--ink);
+}
+.par-presets{
+  display:flex;
+  gap:6px;
+  margin-top:8px;
+  padding-top:6px;
+  border-top:1px dashed var(--line);
+}
+.preset-btn{
+  flex:1;
+  padding:4px 0;
+  font-size:12px;
+  font-weight:600;
+  border-radius:6px;
+  background:var(--tint);
+  border:1px solid var(--line);
+  color:var(--mute);
+  transition:all 0.15s;
+}
+.preset-btn.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Botões de Ação Principal */
+.actions-bar{display:flex;gap:10px;padding-top:8px;flex:none}
+.btn-main{
+  flex:1;
+  height:64px;
+  border-radius:18px;
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:0.02em;
+  transition:all 0.15s;
+  box-shadow:0 4px 16px rgba(0,0,0,0.2);
+}
+.btn-main.go{background:var(--sig);color:#fff}
+.btn-main.go:active{transform:scale(0.98);filter:brightness(0.9)}
+.btn-main.stop{background:var(--ink);color:var(--bg)}
+.btn-main.cancel{border:2px solid var(--sig);color:var(--sig);background:rgba(255,77,54,0.1)}
+.btn-reset{
+  width:96px;
+  height:64px;
+  border:1.5px solid var(--line);
+  border-radius:18px;
+  font-weight:600;
+  font-size:16px;
+  background:var(--card);
+  color:var(--mute);
+  transition:all 0.15s;
+}
+.btn-reset:hover{color:var(--ink);border-color:var(--ink)}
+
+/* Switch Toggle iOS style */
+.sw{
+  -webkit-appearance:none;
+  appearance:none;
+  width:44px;
+  height:26px;
+  border-radius:13px;
+  background:var(--line);
+  position:relative;
+  transition:background 0.2s;
+  flex:none;
+  cursor:pointer;
+}
+.sw::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#fff;
+  transition:transform 0.2s;
+  box-shadow:0 2px 4px rgba(0,0,0,0.2);
+}
+.sw:checked{background:var(--accent)}
 .sw:checked::after{transform:translateX(18px)}
-.actions{display:flex;gap:12px;flex:none;padding-top:6px}
-.main{flex:1;height:68px;border-radius:18px;font-size:22px;font-weight:600}
-.main.go{background:var(--sig);color:#fff}
-.main.stop{background:var(--ink);color:var(--bg)}
-.main.cancel{border:1.5px solid var(--ink)}
-.main:active{transform:scale(.99)}
-.reset{width:104px;height:68px;border:1.5px solid var(--line);border-radius:18px;font-weight:500}
 
-/* Histórico e Ajustes */
-h1{font-size:26px;font-weight:600;padding:10px 0 6px}
-.headrow{display:flex;align-items:center;justify-content:space-between}
-.scroll{flex:1;overflow-y:auto;min-height:0}
-.link{font-size:15px;font-weight:500;padding:8px 0 8px 12px}
-.hist{list-style:none}
-.hist li{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
-.hist .h-date{display:block;font-weight:500}
-.hist .h-sub{display:block;font-size:13.5px;color:var(--mute);margin-top:2px}
-.hist .h-tot{font-size:26px;font-weight:300}
-.hist .del{font-size:13px;color:var(--mute);padding:10px 4px}
-.hist .del.armed{color:var(--sig);font-weight:600}
-.hist .empty{display:block;padding:24px 0;color:var(--mute);cursor:default;border:0}
-h2{font-size:15px;font-weight:600;margin:24px 0 2px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;border-bottom:1px solid var(--line)}
-.row .l{flex:1}
-.row .hint{display:block;font-size:13px;color:var(--mute)}
-.row .val{min-width:66px;text-align:right;color:var(--mute)}
-.row input[type=range]{width:140px;accent-color:var(--ink)}
-.row .num{width:84px;text-align:right;font-size:17px;background:none;border:0;border-bottom:1px solid var(--line);padding:4px 0}
-.btn{border:1.5px solid var(--ink);border-radius:12px;padding:10px 16px;font-weight:500}
-.btn.danger{border-color:var(--sig);color:var(--sig)}
-.meter{position:relative;height:10px;border-radius:5px;background:var(--tint);overflow:hidden;margin:14px 0 6px}
-#m-bar{height:100%;width:0;background:var(--ink)}
-#m-thr{position:absolute;top:0;bottom:0;width:3px;background:var(--sig)}
-.metrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
-#m-hit{font-size:14px;color:var(--mute);opacity:0;transition:opacity .4s}
-#m-hit.on{opacity:1;color:var(--sig);transition:none}
+/* Abas de Navegação Inferior */
+.tabs{
+  display:flex;
+  flex:none;
+  border-top:1px solid var(--line);
+  background:var(--card);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.tabs button{
+  flex:1;
+  height:54px;
+  font-size:13px;
+  font-weight:600;
+  color:var(--mute);
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  transition:color 0.15s;
+}
+.tabs button[aria-current="page"]{color:var(--sig)}
+.tabs button[aria-current="page"]::after{
+  content:"";
+  position:absolute;
+  top:-1px;
+  left:25%;
+  right:25%;
+  height:2px;
+  background:var(--sig);
+  border-radius:2px;
+}
 
-.tabs{display:flex;flex:none;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-.tabs button{flex:1;height:54px;font-size:15px;font-weight:500;color:var(--mute);position:relative}
-.tabs button[aria-current="page"]{color:var(--ink)}
-.tabs button[aria-current="page"]::before{content:"";position:absolute;top:-1px;left:30%;right:30%;height:2px;background:var(--ink)}
-#toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translate(-50%,12px);max-width:86%;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:14px;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+/* Telas Secundárias (Treinos, Evolução, Histórico, Ajustes) */
+h1{font-size:24px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--mute);margin:18px 0 8px}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px 14px;
+  margin-bottom:10px;
+}
+.card-clickable{cursor:pointer;transition:transform 0.1s,border-color 0.1s}
+.card-clickable:hover{border-color:var(--ink)}
+.card-clickable:active{transform:scale(0.99)}
+
+.drill-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.drill-title{font-size:17px;font-weight:700}
+.drill-fav{font-size:20px;color:var(--mute);padding:4px}
+.drill-fav.on{color:var(--gold)}
+.drill-stats{display:flex;gap:14px;font-size:13px;color:var(--mute);margin-top:4px}
+.drill-stats b{color:var(--ink)}
+
+/* Gráficos em Canvas */
+.chart-box{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
+}
+.chart-canvas{width:100%;height:160px;display:block}
+
+/* Linhas de Configuração */
+.setting-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:50px;
+  border-bottom:1px solid var(--line);
+  padding:6px 0;
+}
+.setting-row:last-child{border-bottom:none}
+.setting-info{flex:1}
+.setting-title{font-weight:600;font-size:14.5px}
+.setting-hint{font-size:12.5px;color:var(--mute);display:block;margin-top:1px}
+.setting-ctrl{display:flex;align-items:center;gap:8px}
+
+.range-input{width:120px;accent-color:var(--sig)}
+.num-input{
+  width:64px;
+  text-align:right;
+  font-size:16px;
+  font-weight:600;
+  background:var(--tint);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:4px 6px;
+}
+
+.btn-secondary{
+  border:1px solid var(--line);
+  background:var(--card);
+  border-radius:10px;
+  padding:8px 14px;
+  font-size:13.5px;
+  font-weight:600;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.btn-secondary.danger{color:var(--sig);border-color:rgba(255,77,54,0.3)}
+
+/* Modal / Diálogo de Novo Treino */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:99;
+}
+.modal-box{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:20px;
+  width:100%;
+  max-width:440px;
+  padding:20px;
+  box-shadow:0 12px 36px rgba(0,0,0,0.4);
+}
+.modal-box h2{margin-top:0;font-size:18px;color:var(--ink)}
+.input-text{
+  width:100%;
+  background:var(--tint);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:15px;
+  color:var(--ink);
+  margin:8px 0 14px;
+}
+
+/* Toast Notificação */
+#toast{
+  position:fixed;
+  left:50%;
+  bottom:calc(74px + env(safe-area-inset-bottom));
+  transform:translate(-50%,14px);
+  max-width:90%;
+  background:var(--ink);
+  color:var(--bg);
+  padding:10px 18px;
+  border-radius:999px;
+  font-size:13.5px;
+  font-weight:600;
+  text-align:center;
+  opacity:0;
+  pointer-events:none;
+  transition:all 0.25s cubic-bezier(0.16,1,0.3,1);
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+  z-index:100;
+}
 #toast.on{opacity:1;transform:translate(-50%,0)}
-@media (max-height:640px){.clock{font-size:clamp(64px,22vw,110px)}.stats{padding:8px 0}.main,.reset{height:58px}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div id="app">
 
+  <!-- ==================== ABA 1: TIMER ==================== -->
   <main id="v-timer" class="view active">
-    <header class="top">
-      <div id="status" class="status" aria-live="polite">Pronto</div>
-      <div class="seg" data-k="detect" role="group" aria-label="Detecção do tiro">
-        <button data-v="mic">Microfone</button>
-        <button data-v="tap">Toque</button>
+    <!-- Barra Superior -->
+    <header class="top-bar">
+      <div id="badge-status" class="pill-badge">Pronto</div>
+      <button id="btn-curr-drill" class="drill-selector" aria-label="Exercício selecionado">
+        <span id="txt-drill-name">Treino Livre</span> ▾
+      </button>
+      <div class="seg-group" data-k="detect" role="group" aria-label="Modo de detecção">
+        <button data-v="mic">Live Fire</button>
+        <button data-v="tap">Dry Fire</button>
       </div>
     </header>
 
+    <!-- Display Principal do Cronômetro -->
     <section id="stage" class="stage">
-      <div id="clock" class="clock" role="timer">0<span>,</span><span>00</span></div>
-      <div class="sub">
-        <button id="rv-prev" aria-label="Tiro anterior" hidden>‹</button>
-        <div id="sub-lab"></div>
-        <button id="rv-next" aria-label="Próximo tiro" hidden>›</button>
+      <div id="clock" class="clock-display" role="timer">0<span>,</span><span>00</span></div>
+      <div class="status-sub">
+        <span id="sub-msg">Aguardando largada</span>
+        <span id="badge-delta" class="delta-badge" hidden></span>
       </div>
     </section>
 
-    <div class="stats">
-      <div><b id="st-n">0</b><span>Tiros</span></div>
-      <div><b id="st-first">—</b><span>1º tiro</span></div>
-      <div><b id="st-best">—</b><span>Melhor split</span></div>
-      <div><b id="st-avg">—</b><span>Split médio</span></div>
+    <!-- Onda de Áudio / Waveform em Tempo Real -->
+    <div class="waveform-box">
+      <canvas id="wave-canvas"></canvas>
+      <span class="wave-label">Áudio ao vivo</span>
+      <span id="wave-peak-tag" class="wave-peak-tag">Tiro!</span>
     </div>
 
-    <section class="shots" id="shots"></section>
-
-    <div class="par off" id="par">
-      <span class="lbl">Par</span>
-      <button class="step" id="par-minus" aria-label="Diminuir par">−</button>
-      <input class="num" id="par-val" data-k="par" type="number" min="0.1" max="30" step="0.01" inputmode="decimal" aria-label="Tempo do par em segundos">
-      <span class="unit">s</span>
-      <button class="step" id="par-plus" aria-label="Aumentar par">+</button>
-      <input class="sw" id="par-on" data-k="parOn" type="checkbox" aria-label="Ativar par">
+    <!-- Estatísticas da Série (4 colunas) -->
+    <div class="stats-grid">
+      <div class="stat-item"><b id="st-count">0</b><span>Tiros</span></div>
+      <div class="stat-item"><b id="st-draw">—</b><span>Saque</span></div>
+      <div class="stat-item"><b id="st-best">—</b><span>Melhor</span></div>
+      <div class="stat-item"><b id="st-avg">—</b><span>Média</span></div>
     </div>
 
-    <div class="actions">
-      <button id="btn-reset" class="reset" hidden>Zerar</button>
-      <button id="btn-main" class="main go">Iniciar</button>
+    <!-- Métricas Complementares: Cadência e Descarte -->
+    <div class="metrics-row">
+      <span>Cadência: <b id="st-cadence">—</b> tiros/s</span>
+      <span id="st-discarded-info"></span>
+    </div>
+
+    <!-- Lista de Disparos -->
+    <section class="shots-container">
+      <div class="shots-header">
+        <span>#</span>
+        <span>Split</span>
+        <span>Tempo</span>
+        <span style="text-align:right">Ação</span>
+      </div>
+      <ol class="shot-list" id="shot-list">
+        <li class="empty-shots">Inicie a série para registrar os disparos.</li>
+      </ol>
+    </section>
+
+    <!-- Seção de Par Time -->
+    <div class="par-section" id="par-section">
+      <div class="par-header-row">
+        <span class="lbl">Par Time</span>
+        <div class="par-controls">
+          <button class="par-btn" id="par-minus" aria-label="Diminuir par">−</button>
+          <input class="par-input" id="par-val" type="number" min="0.1" max="30" step="0.05" inputmode="decimal">
+          <button class="par-btn" id="par-plus" aria-label="Aumentar par">+</button>
+          <input class="sw" id="par-toggle" type="checkbox" aria-label="Ativar par">
+        </div>
+      </div>
+      <div class="par-presets">
+        <button class="preset-btn" data-par="1.50">Snap (1.5s)</button>
+        <button class="preset-btn" data-par="2.50">IDPA (2.5s)</button>
+        <button class="preset-btn" data-par="3.50">Padrão (3.5s)</button>
+        <button class="preset-btn" data-par="5.00">Long (5.0s)</button>
+      </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="actions-bar">
+      <button id="btn-reset" class="btn-reset" hidden>Zerar</button>
+      <button id="btn-main" class="btn-main go">Iniciar</button>
     </div>
   </main>
 
+  <!-- ==================== ABA 2: TREINOS (BIBLIOTECA) ==================== -->
+  <main id="v-drills" class="view">
+    <h1>
+      Biblioteca de Treinos
+      <button class="btn-secondary" id="btn-new-drill">+ Novo</button>
+    </h1>
+    <div class="seg-group" id="filter-drills" style="margin-bottom:12px;width:100%">
+      <button style="flex:1" data-f="all" aria-pressed="true">Todos</button>
+      <button style="flex:1" data-f="fav" aria-pressed="false">★ Favoritos</button>
+      <button style="flex:1" data-f="mic" aria-pressed="false">Live Fire</button>
+      <button style="flex:1" data-f="tap" aria-pressed="false">Dry Fire</button>
+    </div>
+    <div id="drills-list"></div>
+  </main>
+
+  <!-- ==================== ABA 3: EVOLUÇÃO & GRÁFICOS ==================== -->
+  <main id="v-stats" class="view">
+    <h1>Evolução & Recordes</h1>
+
+    <h2>Recordes Pessoais Gerais</h2>
+    <div class="stats-grid card">
+      <div class="stat-item"><b id="pr-runs">0</b><span>Séries</span></div>
+      <div class="stat-item"><b id="pr-shots">0</b><span>Disparos</span></div>
+      <div class="stat-item"><b id="pr-draw" style="color:var(--accent)">—</b><span>Melhor Saque</span></div>
+      <div class="stat-item"><b id="pr-split" style="color:var(--cyan)">—</b><span>Melhor Split</span></div>
+    </div>
+
+    <h2>Tendência de Desempenho (Últimas Séries)</h2>
+    <div class="chart-box">
+      <canvas id="chart-trends" class="chart-canvas"></canvas>
+    </div>
+
+    <h2>Evolução do Saque (Últimos 7 dias)</h2>
+    <div class="chart-box">
+      <canvas id="chart-week" class="chart-canvas"></canvas>
+    </div>
+
+    <h2>Melhor Série Registrada 🏆</h2>
+    <div class="card" id="best-series-card">
+      <span style="color:var(--mute)">Nenhuma série válida salva ainda.</span>
+    </div>
+  </main>
+
+  <!-- ==================== ABA 4: HISTÓRICO ==================== -->
   <main id="v-history" class="view">
-    <div class="headrow"><h1>Histórico</h1><button class="link" id="btn-csv">Copiar CSV</button></div>
-    <div class="scroll"><ul class="hist" id="hist"></ul></div>
+    <h1>
+      Histórico de Séries
+      <button class="btn-secondary" id="btn-export-csv">Copiar CSV</button>
+    </h1>
+    <div id="history-list"></div>
   </main>
 
+  <!-- ==================== ABA 5: AJUSTES ==================== -->
   <main id="v-settings" class="view">
-    <h1>Ajustes</h1>
-    <div class="scroll">
-      <h2>Detecção por microfone</h2>
-      <div class="row">
-        <div class="l">Sensibilidade<span class="hint">Maior = detecta tiros mais fracos</span></div>
-        <input type="range" data-k="sens" min="1" max="10" step="1" aria-label="Sensibilidade">
-        <span class="val" data-out="sens"></span>
-      </div>
-      <div class="meter"><div id="m-bar"></div><div id="m-thr"></div></div>
-      <div class="metrow">
-        <button class="btn" id="btn-test">Testar microfone</button>
-        <span id="m-hit">Tiro detectado</span>
-      </div>
-      <div class="row">
-        <div class="l">Intervalo mínimo entre tiros<span class="hint">Evita contar o eco duas vezes</span></div>
-        <input class="num" type="number" data-k="minGap" min="30" max="500" step="10" inputmode="numeric" aria-label="Intervalo mínimo em milissegundos">
-        <span class="val" style="min-width:28px">ms</span>
-      </div>
+    <h1>Ajustes & Calibração</h1>
 
-      <h2>Largada</h2>
-      <div class="row">
-        <div class="l">Atraso até o sinal</div>
-        <div class="seg" data-k="delayMode" role="group" aria-label="Tipo de atraso">
-          <button data-v="rand">Aleatório</button><button data-v="fixed">Fixo</button><button data-v="none">Nenhum</button>
+    <h2>Detecção do Microfone</h2>
+    <div class="card">
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Sensibilidade do Microfone</span>
+          <span class="setting-hint">1 = estande muito alto · 10 = disparos fracos/dry fire</span>
+        </div>
+        <div class="setting-ctrl">
+          <input type="range" class="range-input" data-k="sens" min="1" max="10" step="1">
+          <span style="font-weight:700;width:24px;text-align:right" id="val-sens">6</span>
         </div>
       </div>
-      <div class="row" id="row-dmin"><div class="l">Atraso mínimo</div>
-        <input class="num" type="number" data-k="dMin" min="0" max="30" step="0.1" inputmode="decimal"><span class="val" style="min-width:16px">s</span></div>
-      <div class="row" id="row-dmax"><div class="l">Atraso máximo</div>
-        <input class="num" type="number" data-k="dMax" min="0" max="30" step="0.1" inputmode="decimal"><span class="val" style="min-width:16px">s</span></div>
-      <div class="row" id="row-dfix"><div class="l">Atraso fixo</div>
-        <input class="num" type="number" data-k="dFix" min="0" max="30" step="0.1" inputmode="decimal"><span class="val" style="min-width:16px">s</span></div>
-      <div class="row">
-        <div class="l">Dizer “Preparar”<span class="hint">Aviso por voz antes do atraso</span></div>
-        <input class="sw" type="checkbox" data-k="voice" aria-label="Aviso por voz">
-      </div>
-
-      <h2>Sinal sonoro</h2>
-      <div class="row"><div class="l">Frequência</div>
-        <input type="range" data-k="freq" min="600" max="4000" step="50"><span class="val" data-out="freq" data-fmt="{v} Hz"></span></div>
-      <div class="row"><div class="l">Duração</div>
-        <input type="range" data-k="dur" min="100" max="600" step="10"><span class="val" data-out="dur" data-fmt="{v} ms"></span></div>
-      <div class="row"><div class="l">Volume</div>
-        <input type="range" data-k="vol" min="10" max="100" step="5"><span class="val" data-out="vol" data-fmt="{v}%"></span></div>
-      <div class="row"><div class="l">Ouvir o sinal</div><button class="btn" id="btn-beep">Testar sinal</button></div>
-
-      <h2>Série</h2>
-      <div class="row">
-        <div class="l">Parar após N tiros<span class="hint">0 = só para manualmente</span></div>
-        <input class="num" type="number" data-k="maxShots" min="0" max="99" step="1" inputmode="numeric">
-      </div>
-      <div class="row">
-        <div class="l">Tempo máximo<span class="hint">Para sozinho ao atingir</span></div>
-        <input class="num" type="number" data-k="maxTime" min="5" max="600" step="5" inputmode="numeric"><span class="val" style="min-width:16px">s</span>
-      </div>
-      <div class="row">
-        <div class="l">Manter a tela ligada</div>
-        <input class="sw" type="checkbox" data-k="wake" aria-label="Manter a tela ligada">
-      </div>
-
-      <h2>Aparência e dados</h2>
-      <div class="row">
-        <div class="l">Tema</div>
-        <div class="seg" data-k="theme" role="group" aria-label="Tema">
-          <button data-v="auto">Auto</button><button data-v="light">Claro</button><button data-v="dark">Escuro</button>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Filtro de Eco (Intervalo mínimo)</span>
+          <span class="setting-hint">Evita duplicação do mesmo disparo</span>
+        </div>
+        <div class="setting-ctrl">
+          <input type="number" class="num-input" data-k="minGap" min="40" max="400" step="10"> ms
         </div>
       </div>
-      <div class="row"><div class="l">Histórico salvo neste aparelho</div><button class="btn danger" id="btn-clear">Apagar tudo</button></div>
-      <div style="height:24px"></div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Auto-stop por Silêncio</span>
+          <span class="setting-hint">Encerra sozinho após X segundos sem tiros</span>
+        </div>
+        <div class="setting-ctrl">
+          <select class="num-input" data-k="autoStop" style="width:105px;text-align:left">
+            <option value="0">Desativado</option>
+            <option value="3">3 segundos</option>
+            <option value="5">5 segundos</option>
+            <option value="8">8 segundos</option>
+            <option value="10">10 segundos</option>
+          </select>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Testar Sensibilidade</span>
+          <span class="setting-hint">Ative e bata palmas ou faça estalo seco</span>
+        </div>
+        <button class="btn-secondary" id="btn-mic-test">Testar Agora</button>
+      </div>
+    </div>
+
+    <h2>Largada & Sinal</h2>
+    <div class="card">
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Modo de Atraso</span>
+          <span class="setting-hint">Tempo antes do sinal de largada</span>
+        </div>
+        <div class="seg-group" data-k="delayMode">
+          <button data-v="rand">Aleatório</button>
+          <button data-v="fixed">Fixo</button>
+          <button data-v="none">Nenhum</button>
+        </div>
+      </div>
+      <div class="setting-row" id="row-dfix">
+        <div class="setting-info">
+          <span class="setting-title">Atraso Fixo Padrão</span>
+          <span class="setting-hint">3s, 5s ou 10s</span>
+        </div>
+        <div class="setting-ctrl">
+          <button class="btn-secondary" style="padding:4px 8px" onclick="setFixedDelay(3)">3s</button>
+          <button class="btn-secondary" style="padding:4px 8px" onclick="setFixedDelay(5)">5s</button>
+          <button class="btn-secondary" style="padding:4px 8px" onclick="setFixedDelay(10)">10s</button>
+          <input type="number" class="num-input" data-k="dFix" min="1" max="30" step="0.5" style="width:54px"> s
+        </div>
+      </div>
+      <div class="setting-row" id="row-drand">
+        <div class="setting-info">
+          <span class="setting-title">Janela Aleatória</span>
+          <span class="setting-hint">Intervalo mín. e máx.</span>
+        </div>
+        <div class="setting-ctrl">
+          <input type="number" class="num-input" data-k="dMin" min="0.5" max="10" step="0.5" style="width:50px"> a
+          <input type="number" class="num-input" data-k="dMax" min="1" max="15" step="0.5" style="width:50px"> s
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Aviso de Voz "Preparar"</span>
+          <span class="setting-hint">Fala antes de iniciar o atraso</span>
+        </div>
+        <input class="sw" type="checkbox" data-k="voice">
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Feedback Háptico (Vibração)</span>
+          <span class="setting-hint">Vibra o celular no sinal de largada</span>
+        </div>
+        <input class="sw" type="checkbox" data-k="haptic">
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Frequência do Beep</span>
+        </div>
+        <div class="setting-ctrl">
+          <input type="range" class="range-input" data-k="freq" min="800" max="3500" step="50">
+          <span id="val-freq" style="font-weight:600;min-width:60px;text-align:right">2000 Hz</span>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Testar Som do Beep</span>
+        </div>
+        <button class="btn-secondary" id="btn-test-beep">Tocar Beep</button>
+      </div>
+    </div>
+
+    <h2>Geral & Aparência</h2>
+    <div class="card">
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Tema Visual</span>
+        </div>
+        <div class="seg-group" data-k="theme">
+          <button data-v="dark">Escuro</button>
+          <button data-v="light">Claro</button>
+          <button data-v="auto">Auto</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Manter Tela Ligada</span>
+        </div>
+        <input class="sw" type="checkbox" data-k="wake">
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-title">Limpar Histórico Local</span>
+          <span class="setting-hint">Apaga todas as séries salvas neste aparelho</span>
+        </div>
+        <button class="btn-secondary danger" id="btn-clear-hist">Apagar Dados</button>
+      </div>
     </div>
   </main>
 
-  <nav class="tabs" aria-label="Seções">
-    <button data-v="timer" aria-current="page">Timer</button>
-    <button data-v="history" aria-current="false">Histórico</button>
-    <button data-v="settings" aria-current="false">Ajustes</button>
+  <!-- Barra de Abas Inferior -->
+  <nav class="tabs" aria-label="Navegação Principal">
+    <button data-tab="timer" aria-current="page">⏱️ Timer</button>
+    <button data-tab="drills" aria-current="false">🎯 Treinos</button>
+    <button data-tab="stats" aria-current="false">📈 Evolução</button>
+    <button data-tab="history" aria-current="false">📋 Histórico</button>
+    <button data-tab="settings" aria-current="false">⚙️ Ajustes</button>
   </nav>
+
 </div>
+
+<!-- Modal Novo Treino -->
+<div id="modal-drill" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <h2>Criar Novo Exercício</h2>
+    <label style="font-size:13px;color:var(--mute)">Nome do Treino:</label>
+    <input type="text" id="m-drill-name" class="input-text" placeholder="Ex: El Presidente, 5x5 Drill...">
+    <label style="font-size:13px;color:var(--mute)">Modalidade:</label>
+    <div class="seg-group" id="m-drill-mode" style="width:100%;margin:8px 0 14px">
+      <button style="flex:1" data-v="mic" aria-pressed="true">Live Fire (Tiros Reais)</button>
+      <button style="flex:1" data-v="tap" aria-pressed="false">Dry Fire (A Seco)</button>
+    </div>
+    <label style="font-size:13px;color:var(--mute)">Meta de Tiros (opcional, 0 = livre):</label>
+    <input type="number" id="m-drill-target" class="input-text" value="0" min="0" max="50">
+    <label style="font-size:13px;color:var(--mute)">Par Time Padrão (segundos, 0 = sem par):</label>
+    <input type="number" id="m-drill-par" class="input-text" value="0" min="0" max="30" step="0.1">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-secondary" id="btn-drill-cancel">Cancelar</button>
+      <button class="btn-main go" style="height:44px;font-size:15px;padding:0 20px" id="btn-drill-save">Salvar Treino</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" role="status"></div>
 
 <script>
 (function(){
 'use strict';
+
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
-const KS='shottimer.set.v1', KH='shottimer.hist.v1';
-const DEF={detect:'mic',sens:6,minGap:90,delayMode:'rand',dMin:1,dMax:4,dFix:3,voice:false,freq:2000,dur:250,vol:100,maxShots:0,maxTime:60,wake:true,parOn:false,par:1.5,theme:'auto'};
-function load(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}}
-function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-const set=Object.assign({},DEF,load(KS,{}));
-let hist=load(KH,[]); if(!Array.isArray(hist)) hist=[];
 
-/* ---------- formatação ---------- */
+/* ==========================================================================
+   CONFIGURAÇÃO & PERSISTÊNCIA (STORAGE)
+   ========================================================================== */
+const KS='shottimer.cfg.v2', KH='shottimer.history.v2', KD='shottimer.drills.v2';
+
+const DEF_SETTINGS={
+  detect:'mic',        // 'mic' (Live fire) ou 'tap' (Dry fire)
+  sens:6,              // 1 a 10
+  minGap:80,           // ms entre disparos para filtrar eco
+  autoStop:5,          // segundos de silêncio para parar automaticamente (0 = desligado)
+  delayMode:'rand',    // 'rand', 'fixed', 'none'
+  dMin:1.5,
+  dMax:3.5,
+  dFix:3.0,
+  voice:false,
+  haptic:true,
+  freq:2000,
+  dur:220,             // ms
+  vol:100,
+  parOn:false,
+  par:2.50,
+  wake:true,
+  theme:'dark',
+  activeDrillId:'drill_free'
+};
+
+const DEFAULT_DRILLS=[
+  {id:'drill_free', name:'Treino Livre', mode:'mic', par:0, targetShots:0, fav:true, desc:'Treino livre com disparos ilimitados'},
+  {id:'drill_bill', name:'Bill Drill', mode:'mic', par:3.0, targetShots:6, fav:true, desc:'6 disparos rápidos na zona A a 7 jardas'},
+  {id:'drill_moz', name:'Mozambique Drill', mode:'mic', par:2.5, targetShots:3, fav:true, desc:'2 disparos no tórax, 1 na cabeça'},
+  {id:'drill_draw', name:'Saque Rápido', mode:'mic', par:1.5, targetShots:1, fav:true, desc:'Saque do coldre e 1 disparo rápido'},
+  {id:'drill_trans', name:'Transição de Alvos', mode:'mic', par:4.0, targetShots:4, fav:false, desc:'Disparos múltiplos alternando alvos'},
+  {id:'drill_dry', name:'Dry Fire Básico', mode:'tap', par:2.0, targetShots:5, fav:true, desc:'Treino a seco com acionamento do gatilho'}
+];
+
+function loadData(key, def){
+  try{const v=JSON.parse(localStorage.getItem(key));return v==null?def:v;}catch(e){return def;}
+}
+function saveData(key, val){
+  try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}
+}
+
+const cfg=Object.assign({}, DEF_SETTINGS, loadData(KS, {}));
+let history=loadData(KH, []);
+if(!Array.isArray(history)) history=[];
+
+let drills=loadData(KD, DEFAULT_DRILLS);
+if(!Array.isArray(drills) || !drills.length) drills=DEFAULT_DRILLS;
+
+/* ==========================================================================
+   FORMATAÇÃO DE TEMPO & AUXILIARES
+   ========================================================================== */
 const pad=n=>(n<10?'0':'')+n;
-function parts(t){t=Math.max(0,t);const c=Math.round(t*100),s=Math.floor(c/100);return{i:s>=60?Math.floor(s/60)+':'+pad(s%60):String(s),c:pad(c%100)};}
-const fmt=t=>{const p=parts(t);return p.i+','+p.c;};
-const fmtN=v=>String(v).replace('.',',');
+function formatParts(sec){
+  sec=Math.max(0,sec);
+  const totalCents=Math.round(sec*100);
+  const s=Math.floor(totalCents/100);
+  const c=pad(totalCents%100);
+  const i=s>=60?(Math.floor(s/60)+':'+pad(s%60)):String(s);
+  return {i,c};
+}
+function fmt(sec){
+  const p=formatParts(sec);
+  return p.i+','+p.c;
+}
+function fmtSec(sec){
+  return Number(sec).toFixed(2).replace('.',',');
+}
 
-/* ---------- tema ---------- */
-const sysParam=new URLSearchParams(location.search).get('sys');
-let sysTheme=sysParam||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
-window.setSystemTheme=v=>{sysTheme=v;applyTheme();};
+/* ==========================================================================
+   FEEDBACK HÁPTICO & TEMA
+   ========================================================================== */
+function haptic(ms=150){
+  if(!cfg.haptic)return;
+  try{
+    if(window.AndroidBridge && window.AndroidBridge.vibrate) window.AndroidBridge.vibrate(ms);
+    else if(navigator.vibrate) navigator.vibrate(ms);
+  }catch(e){}
+}
+
 function applyTheme(){
-  const t=(set.theme==='light'||set.theme==='dark')?set.theme:sysTheme;
+  const t=(cfg.theme==='light'||cfg.theme==='dark')?cfg.theme:'dark';
   document.documentElement.setAttribute('data-theme',t);
   try{if(window.AndroidBridge)window.AndroidBridge.setTheme(t==='dark');}catch(e){}
 }
 
-/* ---------- estado ---------- */
-const S={state:'idle',shots:[],sel:-1,T0:0,stopEl:0,review:false,ignoreEnd:0,parStart:Infinity,parEnd:Infinity,nodes:[],testing:false};
+/* ==========================================================================
+   ESTADO DO TIMER & MOTOR
+   ========================================================================== */
+const S={
+  state:'idle',     // 'idle', 'wait', 'run', 'done'
+  shots:[],         // array de objetos {id, t, rawT, discarded: boolean}
+  T0:null,          // timestamp do WebAudio no qual o beep soa (largada)
+  stopEl:0,         // tempo decorrido no momento da parada
+  activeDrill:null,
+  audioNodes:[],
+  testingMic:false,
+  lastShotTimestamp:0,
+  wavePeak:0
+};
 
-/* ---------- áudio ---------- */
-let AC=null;
-function ctx(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;AC=new C({latencyHint:'interactive'});}return AC;}
-function beepAt(t,freq,dur,vol,track){
-  const ac=ctx(),o=ac.createOscillator(),g=ac.createGain();
-  o.type='square';o.frequency.value=freq;
-  const pk=Math.max(0.02,vol*0.6);
-  g.gain.setValueAtTime(0,t);
-  g.gain.linearRampToValueAtTime(pk,t+0.004);
-  g.gain.setValueAtTime(pk,t+dur-0.004);
-  g.gain.linearRampToValueAtTime(0,t+dur);
-  o.connect(g);g.connect(ac.destination);
-  o.start(t);o.stop(t+dur+0.02);
-  if(track!==false)S.nodes.push(o,g);
+function getActiveDrill(){
+  return drills.find(d=>d.id===cfg.activeDrillId) || drills[0];
 }
-function killNodes(){S.nodes.forEach(n=>{try{if(n.stop)n.stop();n.disconnect();}catch(e){}});S.nodes=[];}
-function sayReady(){
-  return new Promise(res=>{
-    try{const u=new SpeechSynthesisUtterance('Preparar');u.lang='pt-BR';u.onend=u.onerror=()=>res();
-      speechSynthesis.cancel();speechSynthesis.speak(u);setTimeout(res,2000);}catch(e){res();}
+
+/* ==========================================================================
+   ÁUDIO & BEEP DE LARGADA
+   ========================================================================== */
+let audioCtx=null;
+function getAudioCtx(){
+  if(!audioCtx){
+    const AudioCtor=window.AudioContext||window.webkitAudioContext;
+    audioCtx=new AudioCtor({latencyHint:'interactive'});
+  }
+  return audioCtx;
+}
+
+function playBeepAt(time, freq, durationSec, volPercent){
+  const ac=getAudioCtx();
+  const osc=ac.createOscillator();
+  const gain=ac.createGain();
+  osc.type='square';
+  osc.frequency.setValueAtTime(freq, time);
+
+  const peakVol=Math.max(0.05, (volPercent/100)*0.7);
+  gain.gain.setValueAtTime(0, time);
+  gain.gain.linearRampToValueAtTime(peakVol, time+0.003);
+  gain.gain.setValueAtTime(peakVol, time+durationSec-0.003);
+  gain.gain.linearRampToValueAtTime(0, time+durationSec);
+
+  osc.connect(gain);
+  gain.connect(ac.destination);
+  osc.start(time);
+  osc.stop(time+durationSec+0.02);
+  S.audioNodes.push(osc, gain);
+}
+
+function clearAudioNodes(){
+  S.audioNodes.forEach(n=>{try{if(n.stop)n.stop();n.disconnect();}catch(e){}});
+  S.audioNodes=[];
+}
+
+function speakVoice(text){
+  return new Promise(resolve=>{
+    if(!cfg.voice){resolve();return;}
+    try{
+      const utter=new SpeechSynthesisUtterance(text);
+      utter.lang='pt-BR';
+      utter.onend=utter.onerror=()=>resolve();
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utter);
+      setTimeout(resolve, 2000);
+    }catch(e){resolve();}
   });
 }
 
-/* ---------- microfone ---------- */
-const threshold=()=>0.85*Math.pow(0.035/0.85,(set.sens-1)/9);
-const disp=x=>x<=0.001?0:Math.min(1,(20*Math.log10(x)+60)/60);
-const Mic={stream:null,src:null,proc:null,mute:null,ready:false,peak:0,armed:true,quiet:0,handler:null,
+/* ==========================================================================
+   MICROFONE, ANALISADOR & DETECÇÃO DE TRANSIENTE
+   ========================================================================== */
+// Mapeamento de sensibilidade (1..10) para limiar de amplitude
+function getThreshold(){
+  const s=Math.max(1, Math.min(10, cfg.sens));
+  // Sens 1: 0.55 (alto) -> Sens 10: 0.018 (muito sensível)
+  return 0.55 * Math.pow(0.018 / 0.55, (s - 1) / 9);
+}
+
+const MicManager={
+  stream:null,
+  source:null,
+  analyser:null,
+  procNode:null,
+  ready:false,
+  timeDomainBuf:new Float32Array(1024),
+  prevAmp:0,
+  noiseFloor:0.01,
+  armed:true,
+  quietSamples:0,
+
   async start(){
-    const ac=ctx();
-    if(this.ready){const tr=this.stream&&this.stream.getAudioTracks()[0];
-      if(tr&&tr.readyState==='live'){this.armed=true;this.quiet=0;return true;}this.stop();}
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return false;
+    const ac=getAudioCtx();
+    if(this.ready && this.stream && this.stream.getAudioTracks()[0]?.readyState==='live'){
+      this.armed=true;
+      return true;
+    }
+    this.stop();
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) return false;
+
     try{
       await ac.resume();
-      this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
-    }catch(e){return false;}
-    this.src=ac.createMediaStreamSource(this.stream);
-    this.proc=ac.createScriptProcessor(256,1,1);
-    this.mute=ac.createGain();this.mute.gain.value=0;
-    this.src.connect(this.proc);this.proc.connect(this.mute);this.mute.connect(ac.destination);
-    this.proc.onaudioprocess=ev=>this.block(ev);
-    this.ready=true;this.armed=true;this.quiet=0;this.peak=0;
+      this.stream=await navigator.mediaDevices.getUserMedia({
+        audio:{
+          echoCancellation:false,
+          noiseSuppression:false,
+          autoGainControl:false,
+          channelCount:1
+        }
+      });
+    }catch(e){
+      return false;
+    }
+
+    this.source=ac.createMediaStreamSource(this.stream);
+    this.analyser=ac.createAnalyser();
+    this.analyser.fftSize=1024;
+    this.analyser.smoothingTimeConstant=0.2;
+    this.source.connect(this.analyser);
+
+    // ScriptProcessor para detecção contínua de amostras
+    try{
+      this.procNode=ac.createScriptProcessor(1024, 1, 1);
+      const muteGain=ac.createGain();
+      muteGain.gain.value=0;
+      this.source.connect(this.procNode);
+      this.procNode.connect(muteGain);
+      muteGain.connect(ac.destination);
+      this.procNode.onaudioprocess=ev=>this.processBuffer(ev);
+    }catch(err){
+      console.warn('ScriptProcessor fallback', err);
+    }
+
+    this.ready=true;
+    this.armed=true;
     return true;
   },
+
   stop(){
     if(!this.ready)return;
-    try{this.proc.onaudioprocess=null;this.src.disconnect();this.proc.disconnect();this.mute.disconnect();}catch(e){}
-    try{this.stream.getTracks().forEach(t=>t.stop());}catch(e){}
-    this.ready=false;this.stream=null;
+    try{
+      if(this.procNode){this.procNode.onaudioprocess=null;this.procNode.disconnect();}
+      if(this.source)this.source.disconnect();
+      if(this.analyser)this.analyser.disconnect();
+    }catch(e){}
+    try{this.stream?.getTracks().forEach(t=>t.stop());}catch(e){}
+    this.ready=false;
+    this.stream=null;
   },
-  takePeak(){const p=this.peak;this.peak=0;return p;},
-  block(ev){
-    const d=ev.inputBuffer.getChannelData(0),n=d.length,sr=AC.sampleRate,thr=threshold();
-    let pk=0,hit=-1;
-    for(let i=0;i<n;i++){const a=d[i]<0?-d[i]:d[i];if(a>pk)pk=a;if(hit<0&&a>=thr)hit=i;}
-    if(pk>this.peak)this.peak=pk;
+
+  processBuffer(ev){
+    if(!this.ready)return;
+    const data=ev.inputBuffer.getChannelData(0);
+    const len=data.length;
+    const sr=getAudioCtx().sampleRate;
+    const thr=getThreshold();
+
+    let maxSample=0;
+    let hitIndex=-1;
+
+    for(let i=0;i<len;i++){
+      const absVal=Math.abs(data[i]);
+      if(absVal>maxSample) maxSample=absVal;
+
+      // Ataque de disparo: amplitude acima do threshold ou derivada abrupta
+      const rise=i>=4?(absVal-Math.abs(data[i-4])):0;
+      if(this.armed && hitIndex<0 && (absVal>=thr || (rise>=thr*0.75 && absVal>thr*0.5))){
+        hitIndex=i;
+      }
+    }
+
+    if(maxSample>S.wavePeak) S.wavePeak=maxSample;
+
+    // Rearma após silêncio pós-disparo (para não contar eco repetido)
     if(!this.armed){
-      if(pk<thr*0.5){this.quiet+=n/sr;if(this.quiet>=0.015)this.armed=true;}else this.quiet=0;
+      if(maxSample < thr*0.45){
+        this.quietSamples+=len;
+        if(this.quietSamples > sr * 0.04){ // 40ms de silêncio
+          this.armed=true;
+          this.quietSamples=0;
+        }
+      }else{
+        this.quietSamples=0;
+      }
       return;
     }
-    if(hit>=0){
-      this.armed=false;this.quiet=0;
-      if(this.handler)this.handler(ev.playbackTime-(n-hit)/sr);
+
+    if(hitIndex>=0){
+      this.armed=false;
+      this.quietSamples=0;
+      const exactTime=ev.playbackTime - (len - hitIndex)/sr;
+      handleAudioTrigger(exactTime);
     }
   }
 };
 
-/* ---------- motor do timer ---------- */
-function wakeSet(on){
-  try{
-    if(on&&set.wake&&'wakeLock' in navigator){navigator.wakeLock.request('screen').then(l=>{wakeSet.l=l;}).catch(()=>{});}
-    else if(!on&&wakeSet.l){wakeSet.l.release();wakeSet.l=null;}
-  }catch(e){}
-}
-function pickDelay(){
-  if(set.delayMode==='none')return 0;
-  if(set.delayMode==='fixed')return set.dFix;
-  const a=Math.min(set.dMin,set.dMax),b=Math.max(set.dMin,set.dMax);
-  return a+Math.random()*(b-a);
-}
-async function begin(){
-  const ac=ctx();ac.resume();killNodes();
-  S.state='wait';S.shots=[];S.sel=-1;S.review=false;S.stopEl=0;
-  render();
-  if(set.detect==='mic'){
-    const ok=await Mic.start();
-    if(S.state!=='wait'){if(ok)Mic.stop();return;}
-    if(!ok){S.state='idle';render();toast('Sem acesso ao microfone. Permita o acesso ou use o modo Toque.');return;}
-    Mic.handler=micShot;
-  }
-  wakeSet(true);
-  if(set.voice){await sayReady();if(S.state!=='wait'){Mic.stop();return;}}
-  const lat=(ac.baseLatency||0)+(ac.outputLatency||0),dur=set.dur/1000,vol=set.vol/100;
-  S.T0=ac.currentTime+pickDelay()+0.06;
-  S.ignoreEnd=dur+0.12+lat;
-  beepAt(S.T0,set.freq,dur,vol);
-  if(set.parOn){S.parStart=set.par;S.parEnd=set.par+dur+0.12+lat;beepAt(S.T0+set.par,set.freq,dur,vol);}
-  else{S.parStart=Infinity;S.parEnd=Infinity;}
-}
-function micShot(t){
-  if(S.state!=='run')return;
-  const rel=t-S.T0;
-  if(rel<S.ignoreEnd)return;
-  if(rel>=S.parStart&&rel<S.parEnd)return;
-  const last=S.shots.length?S.shots[S.shots.length-1]:-1;
-  if(last>=0&&rel-last<set.minGap/1000)return;
-  addShot(rel);
-}
-function addShot(rel){
-  S.shots.push(rel);
-  flash();renderShots();renderStats();
-  if(set.maxShots>0&&S.shots.length>=set.maxShots)stopRun();
-}
-function stopRun(){
-  if(S.state!=='run'&&S.state!=='wait')return;
-  const wasRun=S.state==='run';
-  killNodes();Mic.stop();Mic.handler=null;wakeSet(false);
-  try{speechSynthesis.cancel();}catch(e){}
-  if(wasRun){
-    S.stopEl=Math.max(0,AC.currentTime-S.T0);
-    S.state='done';S.review=false;S.sel=-1;
-    if(S.shots.length){
-      hist.unshift({id:Date.now(),ts:Date.now(),shots:S.shots.slice(),par:set.parOn?set.par:null,total:S.shots[S.shots.length-1]});
-      hist=hist.slice(0,300);store(KH,hist);
-    }
-  }else{S.state='idle';S.shots=[];}
-  render();
-}
-function onMain(){
-  if(S.state==='run'||S.state==='wait')stopRun();
-  else begin();
-}
-function resetAll(){S.state='idle';S.shots=[];S.sel=-1;S.review=false;S.stopEl=0;render();}
-function flash(){
-  const st=$('#stage');st.classList.add('hit');clearTimeout(flash.t);
-  flash.t=setTimeout(()=>st.classList.remove('hit'),120);
-}
+/* ==========================================================================
+   WAVEFORM / OSCILOSCÓPIO EM TEMPO REAL (CANVAS)
+   ========================================================================== */
+const waveCanvas=$('#wave-canvas');
+const waveCtx=waveCanvas.getContext('2d');
 
-/* ---------- renderização ---------- */
-let lastClock='';
-function setClock(t){
-  const p=parts(t),key=p.i+','+p.c;
-  if(key===lastClock)return;lastClock=key;
-  $('#clock').innerHTML=p.i+'<span>,</span><span>'+p.c+'</span>';
+function resizeCanvas(){
+  if(!waveCanvas)return;
+  waveCanvas.width=waveCanvas.offsetWidth * window.devicePixelRatio;
+  waveCanvas.height=waveCanvas.offsetHeight * window.devicePixelRatio;
 }
-function clockValue(){
-  if(S.state==='run')return AC.currentTime-S.T0;
-  if(S.state==='done'){if(S.sel>=0)return S.shots[S.sel];return S.shots.length?S.shots[S.shots.length-1]:S.stopEl;}
-  return 0;
-}
-const splitOf=i=>i?S.shots[i]-S.shots[i-1]:S.shots[0];
-function delaySummary(){
-  if(set.delayMode==='none')return 'Sem atraso';
-  if(set.delayMode==='fixed')return 'Atraso '+fmtN(set.dFix)+' s';
-  return 'Atraso '+fmtN(set.dMin)+'–'+fmtN(set.dMax)+' s';
-}
-function renderSub(){
-  const st=S.state,n=S.shots.length,nav=st==='done'&&n>0;
-  $('#rv-prev').hidden=$('#rv-next').hidden=!nav;
-  let t='';
-  if(st==='idle')t=delaySummary();
-  else if(st==='wait')t='Aguarde o sinal';
-  else if(st==='run')t=set.detect==='tap'?'Toque aqui a cada tiro':'';
-  else if(!n)t='Nenhum tiro registrado';
-  else if(S.sel<0)t='Total · '+n+(n===1?' tiro':' tiros');
-  else t='Tiro '+(S.sel+1)+' de '+n+' · split '+fmt(splitOf(S.sel));
-  $('#sub-lab').textContent=t;
-}
-function renderStats(){
-  const sh=S.shots,n=sh.length,rest=sh.map((t,i)=>i?t-sh[i-1]:t).slice(1);
-  $('#st-n').textContent=n;
-  $('#st-first').textContent=n?fmt(sh[0]):'—';
-  $('#st-best').textContent=rest.length?fmt(Math.min.apply(null,rest)):'—';
-  $('#st-avg').textContent=rest.length?fmt(rest.reduce((a,b)=>a+b,0)/rest.length):'—';
-}
-function renderShots(){
-  const box=$('#shots');
-  if(!S.shots.length){box.innerHTML='<div class="empty">Os tiros aparecem aqui.</div>';return;}
-  box.innerHTML='<div class="head"><span>Tiro</span><span>Split</span><span>Tempo</span></div><ol>'+
-    S.shots.map((t,i)=>'<li data-i="'+i+'" class="'+(i===S.sel?'sel':'')+'"><span class="n">'+(i+1)+'</span><span>'+fmt(splitOf(i))+'</span><span class="tt">'+fmt(t)+'</span></li>').join('')+'</ol>';
-  if(S.state==='run')box.scrollTop=box.scrollHeight;
-}
-function render(){
-  const st=S.state,busy=st==='run'||st==='wait';
-  $('#status').textContent=st==='idle'?'Pronto':st==='wait'?'Preparar…':st==='run'?(set.detect==='mic'?'Atire':'Toque a cada tiro'):(S.review?'Revisão':'Parado');
-  const b=$('#btn-main');
-  b.className='main '+(st==='run'?'stop':st==='wait'?'cancel':'go');
-  b.textContent=st==='run'?'Parar':st==='wait'?'Cancelar':'Iniciar';
-  $('#btn-reset').hidden=st!=='done';
-  $('#stage').classList.toggle('dim',st==='idle'||st==='wait');
-  $$('#v-timer .seg button,#par-minus,#par-plus,#par-val,#par-on').forEach(x=>{x.disabled=busy;});
-  lastClock='';setClock(clockValue());
-  renderSub();renderShots();renderStats();
-}
-function renderHistory(){
-  const ul=$('#hist');
-  if(!hist.length){ul.innerHTML='<li class="empty">Nenhuma série salva. Cada série é salva quando você para o timer.</li>';return;}
-  ul.innerHTML=hist.map(h=>{
-    const d=new Date(h.ts),n=h.shots.length;
-    const when=d.toLocaleDateString('pt-BR',{day:'numeric',month:'short'})+', '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    const sub=n+(n===1?' tiro':' tiros')+' · 1º '+fmt(h.shots[0])+(h.par!=null?' · Par '+fmt(h.par):'');
-    return '<li data-id="'+h.id+'"><div><span class="h-date">'+when+'</span><span class="h-sub">'+sub+'</span></div><span class="h-tot">'+fmt(h.total)+'</span><button class="del" data-del="'+h.id+'">Excluir</button></li>';
-  }).join('');
-}
+window.addEventListener('resize', resizeCanvas);
+setTimeout(resizeCanvas, 50);
 
-/* ---------- ajustes ---------- */
-function applyUI(){
-  $$('[data-k]').forEach(el=>{
-    const k=el.dataset.k;
-    if(el.classList.contains('seg'))el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(set[k]===b.dataset.v)));
-    else if(el.type==='checkbox')el.checked=!!set[k];
-    else if(document.activeElement!==el)el.value=set[k];
-  });
-  $$('[data-out]').forEach(o=>{o.textContent=(o.dataset.fmt||'{v}').replace('{v}',fmtN(set[o.dataset.out]));});
-  $('#row-dmin').hidden=$('#row-dmax').hidden=set.delayMode!=='rand';
-  $('#row-dfix').hidden=set.delayMode!=='fixed';
-  if(document.activeElement!==$('#par-val'))$('#par-val').value=Number(set.par).toFixed(2);
-  $('#par').classList.toggle('off',!set.parOn);
-  $('#m-thr').style.left=(disp(threshold())*100)+'%';
-  applyTheme();
-}
-$$('[data-k]').forEach(el=>{
-  const k=el.dataset.k;
-  if(el.classList.contains('seg')){
-    el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;set[k]=b.dataset.v;store(KS,set);applyUI();render();});
-  }else if(el.type==='checkbox'){
-    el.addEventListener('change',()=>{set[k]=el.checked;store(KS,set);applyUI();});
-  }else if(el.type==='range'){
-    el.addEventListener('input',()=>{set[k]=parseFloat(el.value);store(KS,set);applyUI();});
-  }else if(el.type==='number'){
-    el.addEventListener('change',()=>{
-      let v=parseFloat(String(el.value).replace(',','.'));
-      const mn=parseFloat(el.min),mx=parseFloat(el.max);
-      if(isNaN(v))v=DEF[k];
-      v=Math.round(Math.min(mx,Math.max(mn,v))*100)/100;
-      set[k]=v;if(k==='par')set.parOn=true;
-      store(KS,set);applyUI();renderSub();
-    });
-  }
-});
-function setPar(v){set.par=Math.min(30,Math.max(0.1,Math.round(v*100)/100));set.parOn=true;store(KS,set);applyUI();}
-function holdRepeat(btn,fn){
-  let t1,t2;const stop=()=>{clearTimeout(t1);clearInterval(t2);};
-  btn.addEventListener('pointerdown',e=>{e.preventDefault();fn();t1=setTimeout(()=>{t2=setInterval(fn,90);},420);});
-  ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,stop));
-}
-holdRepeat($('#par-minus'),()=>setPar(set.par-0.1));
-holdRepeat($('#par-plus'),()=>setPar(set.par+0.1));
-
-/* ---------- teste de microfone e de sinal ---------- */
-let lvl=0;
-async function toggleTest(){
-  if(S.testing){stopTest();return;}
-  if(S.state==='run'||S.state==='wait'){toast('Pare o timer antes de testar.');return;}
-  const ok=await Mic.start();
-  if(!ok){toast('Sem acesso ao microfone. Permita o acesso nas permissões do app.');return;}
-  S.testing=true;
-  Mic.handler=()=>{const h=$('#m-hit');h.classList.add('on');clearTimeout(Mic.ht);Mic.ht=setTimeout(()=>h.classList.remove('on'),160);};
-  $('#btn-test').textContent='Parar teste';
-}
-function stopTest(){
-  if(!S.testing)return;
-  S.testing=false;Mic.stop();Mic.handler=null;lvl=0;
-  $('#btn-test').textContent='Testar microfone';$('#m-bar').style.width='0';
-}
-$('#btn-test').addEventListener('click',toggleTest);
-$('#btn-beep').addEventListener('click',()=>{const ac=ctx();ac.resume();beepAt(ac.currentTime+0.05,set.freq,set.dur/1000,set.vol/100,false);});
-
-/* ---------- navegação ---------- */
-function showTab(v){
-  if(v!=='settings')stopTest();
-  $$('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+v));
-  $$('.tabs button').forEach(x=>x.setAttribute('aria-current',x.dataset.v===v?'page':'false'));
-  if(v==='history')renderHistory();
-}
-$$('.tabs button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.v)));
-
-/* ---------- eventos do timer ---------- */
-$('#btn-main').addEventListener('click',onMain);
-$('#btn-reset').addEventListener('click',resetAll);
-function tapShot(){
-  if(set.detect!=='tap'||S.state!=='run')return;
-  const rel=AC.currentTime-S.T0;
-  if(rel<0.05)return;
-  const last=S.shots.length?S.shots[S.shots.length-1]:-1;
-  if(last>=0&&rel-last<0.04)return;
-  addShot(rel);
-}
-$('#stage').addEventListener('pointerdown',tapShot);
-$('#shots').addEventListener('pointerdown',tapShot);
-function stepReview(dir){
-  const n=S.shots.length;if(!n)return;
-  S.sel=((S.sel+1+dir+(n+1))%(n+1))-1;
-  setClock(clockValue());renderSub();renderShots();
-  const li=$('#shots li.sel');if(li&&li.scrollIntoView)li.scrollIntoView({block:'nearest'});
-}
-$('#rv-prev').addEventListener('click',()=>stepReview(-1));
-$('#rv-next').addEventListener('click',()=>stepReview(1));
-$('#shots').addEventListener('click',e=>{
-  const li=e.target.closest('li[data-i]');
-  if(!li||S.state!=='done')return;
-  const i=parseInt(li.dataset.i,10);S.sel=(S.sel===i)?-1:i;
-  setClock(clockValue());renderSub();renderShots();
-});
-
-/* ---------- histórico ---------- */
-$('#hist').addEventListener('click',e=>{
-  const del=e.target.closest('[data-del]');
-  if(del){
-    e.stopPropagation();
-    if(del.classList.contains('armed')){
-      hist=hist.filter(h=>String(h.id)!==del.dataset.del);store(KH,hist);renderHistory();
-    }else{
-      del.classList.add('armed');del.textContent='Confirmar';
-      setTimeout(()=>{del.classList.remove('armed');del.textContent='Excluir';},3000);
+function drawWaveform(){
+  if(!waveCtx || !MicManager.analyser || !MicManager.ready){
+    if(waveCtx){
+      waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height);
+      // Linha central suave
+      waveCtx.strokeStyle='rgba(255,255,255,0.08)';
+      waveCtx.lineWidth=1;
+      waveCtx.beginPath();
+      waveCtx.moveTo(0, waveCanvas.height/2);
+      waveCtx.lineTo(waveCanvas.width, waveCanvas.height/2);
+      waveCtx.stroke();
     }
     return;
   }
-  const li=e.target.closest('li[data-id]');if(!li)return;
-  const h=hist.find(x=>String(x.id)===li.dataset.id);if(!h)return;
-  if(S.state==='run'||S.state==='wait'){toast('Pare o timer antes de abrir uma série.');return;}
-  S.shots=h.shots.slice();S.state='done';S.review=true;S.sel=-1;S.stopEl=h.total;
-  render();showTab('timer');
-});
-function csvText(){
-  const rows=['data,serie,tiro,split_s,tempo_s,par_s'];
-  hist.slice().reverse().forEach((h,si)=>{
-    const d=new Date(h.ts).toISOString();
-    h.shots.forEach((t,i)=>{
-      const sp=i?t-h.shots[i-1]:t;
-      rows.push([d,si+1,i+1,sp.toFixed(2),t.toFixed(2),h.par==null?'':Number(h.par).toFixed(2)].join(','));
+
+  MicManager.analyser.getFloatTimeDomainData(MicManager.timeDomainBuf);
+  const w=waveCanvas.width, h=waveCanvas.height;
+  waveCtx.clearRect(0,0,w,h);
+
+  const buf=MicManager.timeDomainBuf;
+  const len=buf.length;
+  const sliceW=w/len;
+
+  // Linhas guia de Threshold
+  const thr=getThreshold();
+  const thrY1=(0.5 - (thr*0.5)) * h;
+  const thrY2=(0.5 + (thr*0.5)) * h;
+
+  waveCtx.strokeStyle='rgba(255,77,54,0.35)';
+  waveCtx.lineWidth=1;
+  waveCtx.setLineDash([4,4]);
+  waveCtx.beginPath();
+  waveCtx.moveTo(0, thrY1); waveCtx.lineTo(w, thrY1);
+  waveCtx.moveTo(0, thrY2); waveCtx.lineTo(w, thrY2);
+  waveCtx.stroke();
+  waveCtx.setLineDash([]);
+
+  // Traçado da onda de áudio
+  waveCtx.strokeStyle=S.state==='run'?'#22c55e':'#06b6d4';
+  waveCtx.lineWidth=2 * window.devicePixelRatio;
+  waveCtx.beginPath();
+
+  let x=0;
+  for(let i=0;i<len;i++){
+    const v=buf[i];
+    const y=(0.5 + v*0.5) * h;
+    if(i===0) waveCtx.moveTo(x,y);
+    else waveCtx.lineTo(x,y);
+    x+=sliceW;
+  }
+  waveCtx.stroke();
+}
+
+/* ==========================================================================
+   LÓGICA PRINCIPAL DO TIMER & GESTÃO DE TIROS
+   ========================================================================== */
+function calculateDelay(){
+  if(cfg.delayMode==='none') return 0;
+  if(cfg.delayMode==='fixed') return Number(cfg.dFix) || 3.0;
+  const min=Math.min(cfg.dMin, cfg.dMax);
+  const max=Math.max(cfg.dMin, cfg.dMax);
+  return min + Math.random()*(max - min);
+}
+
+async function startTimer(){
+  const ac=getAudioCtx();
+  await ac.resume();
+  clearAudioNodes();
+
+  // Reset de variáveis de execução (GARANTE QUE O CRONÔMETRO COMECE DE ZERO)
+  S.state='wait';
+  S.shots=[];
+  S.T0=null;
+  S.stopEl=0;
+  S.lastShotTimestamp=0;
+  S.activeDrill=getActiveDrill();
+
+  updateUI();
+  setClock(0);
+
+  // Inicia microfone se configurado
+  if(cfg.detect==='mic'){
+    const ok=await MicManager.start();
+    if(S.state!=='wait'){if(ok)MicManager.stop();return;}
+    if(!ok){
+      S.state='idle';
+      updateUI();
+      showToast('Sem acesso ao microfone. Conceda a permissão nas opções do app.');
+      return;
+    }
+  }
+
+  // Manter tela ligada
+  if(cfg.wake && 'wakeLock' in navigator){
+    try{navigator.wakeLock.request('screen').then(lock=>{S.wakeLock=lock;}).catch(()=>{});}catch(e){}
+  }
+
+  // Aviso de voz "Preparar"
+  if(cfg.voice){
+    await speakVoice('Preparar');
+    if(S.state!=='wait'){MicManager.stop();return;}
+  }
+
+  // Agendamento do Beep de largada
+  const delaySec=calculateDelay();
+  const durSec=cfg.dur/1000;
+  const volPct=cfg.vol;
+
+  // T0 definido com precisão
+  S.T0=ac.currentTime + delaySec;
+  playBeepAt(S.T0, cfg.freq, durSec, volPct);
+
+  // Par Time (se ativo no ajuste ou no drill selecionado)
+  const parVal=(cfg.parOn && cfg.par>0)?cfg.par:(S.activeDrill.par>0?S.activeDrill.par:0);
+  if(parVal>0){
+    playBeepAt(S.T0 + parVal, cfg.freq, durSec, volPct);
+  }
+}
+
+function stopTimer(manual=true){
+  if(S.state!=='run' && S.state!=='wait') return;
+  const wasRun=S.state==='run';
+  clearAudioNodes();
+  MicManager.stop();
+
+  try{if(S.wakeLock){S.wakeLock.release();S.wakeLock=null;}}catch(e){}
+  try{speechSynthesis.cancel();}catch(e){}
+
+  if(wasRun){
+    const ac=getAudioCtx();
+    S.stopEl=S.T0!=null?Math.max(0, ac.currentTime - S.T0):0;
+    S.state='done';
+
+    // Salvar no histórico se houver disparos
+    const validShots=S.shots.filter(s=>!s.discarded);
+    if(validShots.length>0){
+      const firstDraw=validShots[0].t;
+      const totalTime=validShots[validShots.length-1].t;
+      const splits=calculateSplits(validShots);
+      const bestSplit=splits.length>1?Math.min(...splits.slice(1)):(splits[0]||0);
+
+      const recordItem={
+        id:Date.now(),
+        ts:Date.now(),
+        drillId:S.activeDrill?.id||'drill_free',
+        drillName:S.activeDrill?.name||'Treino Livre',
+        mode:cfg.detect,
+        shots:S.shots.map(s=>({t:s.t, discarded:s.discarded})),
+        validCount:validShots.length,
+        discardCount:S.shots.length - validShots.length,
+        total:totalTime,
+        draw:firstDraw,
+        bestSplit:bestSplit,
+        par:cfg.parOn?cfg.par:null
+      };
+
+      history.unshift(recordItem);
+      history=history.slice(0, 500); // até 500 séries
+      saveData(KH, history);
+      showToast('Série salva no histórico! 📋');
+    }
+  }else{
+    // Foi cancelado antes do sinal
+    S.state='idle';
+    S.shots=[];
+  }
+
+  updateUI();
+}
+
+function resetAll(){
+  S.state='idle';
+  S.shots=[];
+  S.T0=null;
+  S.stopEl=0;
+  S.lastShotTimestamp=0;
+  clearAudioNodes();
+  MicManager.stop();
+  setClock(0);
+  updateUI();
+  showToast('Cronômetro zerado.');
+}
+
+// Disparo detectado pelo áudio
+function handleAudioTrigger(playbackTime){
+  if(S.state!=='run' || S.T0==null) return;
+  const relTime=playbackTime - S.T0;
+
+  // Ignora ruído do próprio beep inicial
+  const beepDurSec=cfg.dur/1000;
+  if(relTime < beepDurSec + 0.08) return;
+
+  // Filtro de intervalo mínimo (eco)
+  const validShots=S.shots.filter(s=>!s.discarded);
+  const lastShot=validShots.length>0?validShots[validShots.length-1].t:-1;
+  if(lastShot>=0 && (relTime - lastShot) < (cfg.minGap/1000)) return;
+
+  registerShot(relTime);
+}
+
+// Disparo registrado (seja por mic ou toque Dry Fire)
+function registerShot(relTime){
+  if(S.state!=='run') return;
+  relTime=Math.round(relTime*100)/100; // precisão centesimal
+
+  S.shots.push({
+    id:Date.now() + Math.random(),
+    t:relTime,
+    discarded:false
+  });
+
+  S.lastShotTimestamp=getAudioCtx().currentTime;
+
+  // Efeito visual & háptico
+  flashStage();
+  triggerPeakTag();
+  haptic(40);
+
+  renderShotsList();
+  renderMetrics();
+
+  // Verifica parada por meta de tiros do drill
+  if(S.activeDrill && S.activeDrill.targetShots>0){
+    const validCount=S.shots.filter(s=>!s.discarded).length;
+    if(validCount >= S.activeDrill.targetShots){
+      stopTimer(false);
+    }
+  }
+}
+
+// Toque na tela para Dry Fire
+function handleScreenTap(){
+  if(cfg.detect!=='tap' || S.state!=='run' || S.T0==null) return;
+  const ac=getAudioCtx();
+  const relTime=ac.currentTime - S.T0;
+  if(relTime < 0.05) return;
+
+  const validShots=S.shots.filter(s=>!s.discarded);
+  const lastShot=validShots.length>0?validShots[validShots.length-1].t:-1;
+  if(lastShot>=0 && (relTime - lastShot) < 0.05) return;
+
+  registerShot(relTime);
+}
+
+/* ==========================================================================
+   CÁLCULO DE SPLITS, CADÊNCIA & REVISÃO COM DESCARTE
+   ========================================================================== */
+function calculateSplits(validShots){
+  return validShots.map((s, idx)=>{
+    return idx===0 ? s.t : Math.round((s.t - validShots[idx-1].t)*100)/100;
+  });
+}
+
+function toggleDiscardShot(index){
+  if(!S.shots[index]) return;
+  S.shots[index].discarded=!S.shots[index].discarded;
+  renderShotsList();
+  renderMetrics();
+  updateClockDisplay();
+}
+
+/* ==========================================================================
+   ATUALIZAÇÃO DE INTERFACE (UI)
+   ========================================================================== */
+let lastRenderedClock='';
+function setClock(sec){
+  const p=formatParts(sec);
+  const formatted=p.i+','+p.c;
+  if(formatted===lastRenderedClock) return;
+  lastRenderedClock=formatted;
+  $('#clock').innerHTML=p.i+'<span>,</span><span>'+p.c+'</span>';
+}
+
+function updateClockDisplay(){
+  if(S.state==='run' && S.T0!=null){
+    setClock(getAudioCtx().currentTime - S.T0);
+  }else if(S.state==='done'){
+    const validShots=S.shots.filter(s=>!s.discarded);
+    if(validShots.length>0) setClock(validShots[validShots.length-1].t);
+    else setClock(S.stopEl);
+  }else{
+    setClock(0);
+  }
+}
+
+function flashStage(){
+  const st=$('#stage');
+  st.classList.remove('flash','hit');
+  void st.offsetWidth; // force reflow
+  st.classList.add('flash','hit');
+  setTimeout(()=>st.classList.remove('hit'), 150);
+}
+
+function triggerPeakTag(){
+  const tag=$('#wave-peak-tag');
+  tag.classList.add('on');
+  clearTimeout(triggerPeakTag.t);
+  triggerPeakTag.t=setTimeout(()=>tag.classList.remove('on'), 350);
+}
+
+function renderMetrics(){
+  const valid=S.shots.filter(s=>!s.discarded);
+  const discardedCount=S.shots.length - valid.length;
+  const count=valid.length;
+
+  $('#st-count').textContent=count;
+
+  if(count>0){
+    const drawTime=valid[0].t;
+    $('#st-draw').textContent=fmtSec(drawTime)+'s';
+
+    const splits=calculateSplits(valid);
+    if(splits.length>1){
+      const restSplits=splits.slice(1);
+      const best=Math.min(...restSplits);
+      const avg=restSplits.reduce((a,b)=>a+b,0) / restSplits.length;
+      $('#st-best').textContent=fmtSec(best)+'s';
+      $('#st-avg').textContent=fmtSec(avg)+'s';
+
+      // Cadência: disparos por segundo
+      const totalTimeSpan=valid[valid.length-1].t - valid[0].t;
+      const cadence=totalTimeSpan>0?((count-1)/totalTimeSpan):0;
+      $('#st-cadence').textContent=cadence.toFixed(1);
+    }else{
+      $('#st-best').textContent='—';
+      $('#st-avg').textContent='—';
+      $('#st-cadence').textContent='—';
+    }
+  }else{
+    $('#st-draw').textContent='—';
+    $('#st-best').textContent='—';
+    $('#st-avg').textContent='—';
+    $('#st-cadence').textContent='—';
+  }
+
+  // Info de descartados
+  const discInfo=$('#st-discarded-info');
+  if(discardedCount>0){
+    discInfo.textContent=`${discardedCount} ${discardedCount===1?'tiro descartado':'tiros descartados'}`;
+  }else{
+    discInfo.textContent='';
+  }
+
+  // Comparação com recorde pessoal do drill
+  checkPersonalRecordDelta(valid);
+}
+
+function checkPersonalRecordDelta(validShots){
+  const deltaBadge=$('#badge-delta');
+  if(S.state!=='done' || validShots.length===0){
+    deltaBadge.hidden=true;
+    return;
+  }
+
+  const drill=getActiveDrill();
+  const drillRuns=history.filter(h=>h.drillId===drill.id && h.validCount>0);
+  if(drillRuns.length<=1){
+    deltaBadge.hidden=false;
+    deltaBadge.className='delta-badge better';
+    deltaBadge.textContent='Novo Recorde! 🏆';
+    return;
+  }
+
+  // Encontra o melhor tempo anterior
+  const otherRuns=drillRuns.slice(1);
+  const bestTotal=Math.min(...otherRuns.map(r=>r.total));
+  const currentTotal=validShots[validShots.length-1].t;
+  const diff=currentTotal - bestTotal;
+
+  deltaBadge.hidden=false;
+  if(diff <= 0){
+    deltaBadge.className='delta-badge better';
+    deltaBadge.textContent='Novo Recorde! 🏆 ' + fmtSec(Math.abs(diff)) + 's';
+  }else{
+    deltaBadge.className='delta-badge worse';
+    deltaBadge.textContent='+' + fmtSec(diff) + 's do recorde';
+  }
+}
+
+function renderShotsList(){
+  const container=$('#shot-list');
+  if(!S.shots.length){
+    container.innerHTML='<li class="empty-shots">Inicie a série para registrar os disparos.</li>';
+    return;
+  }
+
+  const valid=S.shots.filter(s=>!s.discarded);
+  const splits=calculateSplits(valid);
+  let validIndex=0;
+
+  // Acha o split mais rápido para destacar
+  let fastestSplit=Infinity;
+  if(splits.length>1){
+    fastestSplit=Math.min(...splits.slice(1));
+  }
+
+  container.innerHTML=S.shots.map((shot, idx)=>{
+    let splitVal='—';
+    let isFastest=false;
+
+    if(!shot.discarded){
+      const sp=splits[validIndex++];
+      splitVal=fmtSec(sp)+'s';
+      if(validIndex>1 && sp===fastestSplit) isFastest=true;
+    }
+
+    const rowClass=['shot-row', shot.discarded?'discarded':'', isFastest?'fastest':''].filter(Boolean).join(' ');
+    const btnTitle=shot.discarded?'Restaurar tiro':'Descartar tiro falso';
+    const btnIcon=shot.discarded?'↺':'✕';
+
+    return `
+      <li class="${rowClass}">
+        <span class="num">${idx+1}</span>
+        <span class="split">${splitVal}</span>
+        <span class="total">${fmtSec(shot.t)}s</span>
+        <div style="text-align:right">
+          <button class="btn-discard" onclick="window.toggleDiscard(${idx})" title="${btnTitle}">${btnIcon}</button>
+        </div>
+      </li>
+    `;
+  }).join('');
+
+  if(S.state==='run'){
+    const box=$('.shots-container');
+    box.scrollTop=box.scrollHeight;
+  }
+}
+
+window.toggleDiscard=toggleDiscardShot;
+
+function updateUI(){
+  const st=S.state;
+  const isBusy=(st==='run'||st==='wait');
+
+  // Badge Status
+  const bStatus=$('#badge-status');
+  bStatus.className='pill-badge ' + (st==='run'?'go':(st==='wait'?'active':''));
+  bStatus.textContent=st==='idle'?'Pronto':(st==='wait'?'Preparar…':(st==='run'?'Atire!':'Parado'));
+
+  // Mensagem abaixo do relógio
+  const subMsg=$('#sub-msg');
+  if(st==='idle') subMsg.textContent=cfg.detect==='mic'?'Microfone calibrado · Pronto':'Modo Toque (Dry Fire) · Pronto';
+  else if(st==='wait') subMsg.textContent='Aguarde o sinal sonoro…';
+  else if(st==='run') subMsg.textContent=cfg.detect==='mic'?'Detectando disparos…':'Toque na tela a cada disparo';
+  else subMsg.textContent=`Série finalizada · ${S.shots.filter(s=>!s.discarded).length} válidos`;
+
+  // Botões principais
+  const btnMain=$('#btn-main');
+  btnMain.className='btn-main ' + (st==='run'?'stop':(st==='wait'?'cancel':'go'));
+  btnMain.textContent=st==='run'?'Parar':(st==='wait'?'Cancelar':'Iniciar');
+
+  $('#btn-reset').hidden=(st!=='done');
+  $('#stage').classList.toggle('dim', st==='idle'||st==='wait');
+
+  // Drill Name
+  const currDrill=getActiveDrill();
+  $('#txt-drill-name').textContent=currDrill.name;
+
+  // Par Controls
+  $('#par-val').value=Number(cfg.par).toFixed(2);
+  $('#par-toggle').checked=!!cfg.parOn;
+
+  // Desabilita controles durante o tiro
+  $$('[data-k="detect"] button, #btn-curr-drill, #par-minus, #par-plus, #par-val, #par-toggle, .preset-btn').forEach(el=>{
+    el.disabled=isBusy;
+  });
+
+  renderMetrics();
+  renderShotsList();
+}
+
+/* ==========================================================================
+   BIBLIOTECA DE TREINOS & PRESETS
+   ========================================================================== */
+function renderDrillsList(filter='all'){
+  const container=$('#drills-list');
+  let list=drills.slice();
+
+  if(filter==='fav') list=list.filter(d=>d.fav);
+  else if(filter==='mic') list=list.filter(d=>d.mode==='mic');
+  else if(filter==='tap') list=list.filter(d=>d.mode==='tap');
+
+  if(!list.length){
+    container.innerHTML='<div class="card" style="text-align:center;color:var(--mute)">Nenhum exercício encontrado neste filtro.</div>';
+    return;
+  }
+
+  container.innerHTML=list.map(d=>{
+    const isCurrent=d.id===cfg.activeDrillId;
+    const drillRuns=history.filter(h=>h.drillId===d.id && h.validCount>0);
+    const count=drillRuns.length;
+
+    let bestTotal='—', bestDraw='—', bestSplit='—';
+    if(count>0){
+      bestTotal=fmtSec(Math.min(...drillRuns.map(r=>r.total)))+'s';
+      bestDraw=fmtSec(Math.min(...drillRuns.map(r=>r.draw)))+'s';
+      const validSplits=drillRuns.map(r=>r.bestSplit).filter(v=>v>0);
+      if(validSplits.length) bestSplit=fmtSec(Math.min(...validSplits))+'s';
+    }
+
+    return `
+      <div class="card card-clickable" onclick="window.selectDrill('${d.id}')" style="${isCurrent?'border-color:var(--sig);background:var(--tint)':''}">
+        <div class="drill-card-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="drill-title">${d.name}</span>
+            <span class="pill-badge" style="font-size:11px">${d.mode==='mic'?'Live Fire':'Dry Fire'}</span>
+            ${d.par>0?`<span class="pill-badge" style="font-size:11px;color:var(--gold)">Par ${d.par}s</span>`:''}
+          </div>
+          <button class="drill-fav ${d.fav?'on':''}" onclick="event.stopPropagation();window.toggleFavDrill('${d.id}')">★</button>
+        </div>
+        <div style="font-size:13px;color:var(--mute);margin-bottom:6px">${d.desc||''}</div>
+        <div class="drill-stats">
+          <span>Séries: <b>${count}</b></span>
+          <span>Melhor Tempo: <b>${bestTotal}</b></span>
+          <span>Melhor Saque: <b>${bestDraw}</b></span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.selectDrill=function(id){
+  const found=drills.find(d=>d.id===id);
+  if(!found)return;
+  cfg.activeDrillId=id;
+  if(found.par>0){cfg.par=found.par;cfg.parOn=true;}
+  if(found.mode){cfg.detect=found.mode;}
+  saveData(KS, cfg);
+  updateUI();
+  switchTab('timer');
+  showToast(`Exercício "${found.name}" selecionado!`);
+};
+
+window.toggleFavDrill=function(id){
+  const d=drills.find(x=>x.id===id);
+  if(!d)return;
+  d.fav=!d.fav;
+  saveData(KD, drills);
+  renderDrillsList($('#filter-drills button[aria-pressed="true"]')?.dataset.f||'all');
+};
+
+/* ==========================================================================
+   ESTATÍSTICAS, EVOLUÇÃO & GRÁFICOS (CANVAS)
+   ========================================================================== */
+function renderStatsTab(){
+  const validRuns=history.filter(h=>h.validCount>0);
+  const totalRuns=validRuns.length;
+  const totalShots=validRuns.reduce((sum,r)=>sum + r.validCount, 0);
+
+  $('#pr-runs').textContent=totalRuns;
+  $('#pr-shots').textContent=totalShots;
+
+  if(totalRuns>0){
+    const minDraw=Math.min(...validRuns.map(r=>r.draw));
+    $('#pr-draw').textContent=fmtSec(minDraw)+'s';
+
+    const validSplits=validRuns.map(r=>r.bestSplit).filter(s=>s>0);
+    if(validSplits.length){
+      $('#pr-split').textContent=fmtSec(Math.min(...validSplits))+'s';
+    }else{
+      $('#pr-split').textContent='—';
+    }
+
+    // Melhor série detalhada
+    const bestSeries=[...validRuns].sort((a,b)=>a.total - b.total)[0];
+    const bestDate=new Date(bestSeries.ts).toLocaleDateString('pt-BR');
+    $('#best-series-card').innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <b>${bestSeries.drillName} · ${bestDate}</b>
+        <span style="font-size:20px;font-weight:700;color:var(--accent)">${fmtSec(bestSeries.total)}s</span>
+      </div>
+      <div style="font-size:13px;color:var(--mute)">
+        ${bestSeries.validCount} tiros · Saque: <b>${fmtSec(bestSeries.draw)}s</b> · Melhor Split: <b>${fmtSec(bestSeries.bestSplit)}s</b>
+      </div>
+    `;
+  }else{
+    $('#pr-draw').textContent='—';
+    $('#pr-split').textContent='—';
+    $('#best-series-card').innerHTML='<span style="color:var(--mute)">Nenhuma série válida salva ainda.</span>';
+  }
+
+  drawTrendsChart();
+  drawWeekChart();
+}
+
+function drawTrendsChart(){
+  const canvas=$('#chart-trends');
+  if(!canvas)return;
+  canvas.width=canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height=canvas.offsetHeight * window.devicePixelRatio;
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width, h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+
+  const runs=history.filter(h=>h.validCount>0).slice(0, 15).reverse();
+  if(runs.length<2){
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.font='14px ' + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign='center';
+    ctx.fillText('Realize pelo menos 2 séries para ver o gráfico de tendência.', w/2, h/2);
+    return;
+  }
+
+  const values=runs.map(r=>r.total);
+  const minV=Math.min(...values)*0.9;
+  const maxV=Math.max(...values)*1.1;
+
+  const padLeft=40*window.devicePixelRatio, padRight=20*window.devicePixelRatio;
+  const padTop=20*window.devicePixelRatio, padBottom=30*window.devicePixelRatio;
+  const plotW=w - padLeft - padRight;
+  const plotH=h - padTop - padBottom;
+
+  // Grade
+  ctx.strokeStyle='rgba(255,255,255,0.06)';
+  ctx.lineWidth=1;
+  for(let i=0;i<=3;i++){
+    const y=padTop + (plotH/3)*i;
+    ctx.beginPath();ctx.moveTo(padLeft, y);ctx.lineTo(w-padRight, y);ctx.stroke();
+  }
+
+  // Linha de tendência
+  ctx.strokeStyle='#ff4d36';
+  ctx.lineWidth=3*window.devicePixelRatio;
+  ctx.beginPath();
+
+  runs.forEach((r, idx)=>{
+    const x=padLeft + (plotW / (runs.length - 1)) * idx;
+    const y=padTop + plotH - ((r.total - minV) / (maxV - minV)) * plotH;
+    if(idx===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Pontos
+  runs.forEach((r, idx)=>{
+    const x=padLeft + (plotW / (runs.length - 1)) * idx;
+    const y=padTop + plotH - ((r.total - minV) / (maxV - minV)) * plotH;
+    ctx.fillStyle='#ff4d36';
+    ctx.beginPath();
+    ctx.arc(x,y, 4*window.devicePixelRatio, 0, Math.PI*2);
+    ctx.fill();
+  });
+}
+
+function drawWeekChart(){
+  const canvas=$('#chart-week');
+  if(!canvas)return;
+  canvas.width=canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height=canvas.offsetHeight * window.devicePixelRatio;
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width, h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+
+  const now=Date.now();
+  const dayMs=86400000;
+  const days=[];
+
+  for(let i=6;i>=0;i--){
+    const dayStart=now - (i * dayMs);
+    const d=new Date(dayStart);
+    const dayName=d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+    const dayRuns=history.filter(h=>h.validCount>0 && (Math.abs(h.ts - dayStart) < dayMs/2));
+    const avgDraw=dayRuns.length>0?(dayRuns.reduce((s,r)=>s+r.draw,0)/dayRuns.length):0;
+    days.push({name:dayName, draw:avgDraw});
+  }
+
+  const maxDraw=Math.max(...days.map(d=>d.draw), 1.0);
+  const barW=w / 7 * 0.55;
+
+  days.forEach((day, idx)=>{
+    const cx=(w / 7) * (idx + 0.5);
+    const barH=day.draw>0 ? ((day.draw / maxDraw) * (h - 50*window.devicePixelRatio)) : 4;
+    const y=h - 26*window.devicePixelRatio - barH;
+
+    ctx.fillStyle=day.draw>0?'#22c55e':'rgba(255,255,255,0.08)';
+    ctx.beginPath();
+    ctx.roundRect(cx - barW/2, y, barW, barH, 4);
+    ctx.fill();
+
+    // Rótulo do dia
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.font=`${11*window.devicePixelRatio}px ` + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign='center';
+    ctx.fillText(day.name.toUpperCase(), cx, h - 8*window.devicePixelRatio);
+
+    if(day.draw>0){
+      ctx.fillStyle='#fff';
+      ctx.font=`bold ${10*window.devicePixelRatio}px ` + getComputedStyle(document.body).fontFamily;
+      ctx.fillText(day.draw.toFixed(2), cx, y - 4);
+    }
+  });
+}
+
+/* ==========================================================================
+   HISTÓRICO COMPLETO & EXPORTAÇÃO CSV
+   ========================================================================== */
+function renderHistoryTab(){
+  const container=$('#history-list');
+  if(!history.length){
+    container.innerHTML='<div class="card" style="text-align:center;color:var(--mute)">Nenhuma série salva no histórico.</div>';
+    return;
+  }
+
+  container.innerHTML=history.map(item=>{
+    const d=new Date(item.ts);
+    const dateStr=d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const validCount=item.shots ? item.shots.filter(s=>!s.discarded).length : item.validCount;
+
+    return `
+      <div class="card card-clickable" onclick="window.openHistorySeries(${item.id})">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div>
+            <b style="font-size:16px">${item.drillName||'Treino Livre'}</b>
+            <span style="font-size:12px;color:var(--mute);margin-left:6px">${dateStr}</span>
+          </div>
+          <span style="font-size:22px;font-weight:700;color:var(--ink)">${fmtSec(item.total)}s</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--mute)">
+          <span>${validCount} disparos · Saque: <b>${fmtSec(item.draw)}s</b> · Split: <b>${fmtSec(item.bestSplit)}s</b></span>
+          <button class="btn-secondary danger" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();window.deleteHistoryItem(${item.id})">Excluir</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.deleteHistoryItem=function(id){
+  if(confirm('Excluir esta série do histórico?')){
+    history=history.filter(h=>h.id!==id);
+    saveData(KH, history);
+    renderHistoryTab();
+    showToast('Série excluída.');
+  }
+};
+
+window.openHistorySeries=function(id){
+  const found=history.find(h=>h.id===id);
+  if(!found)return;
+  S.state='done';
+  S.shots=(found.shots||[]).map(s=>({id:Math.random(), t:s.t, discarded:!!s.discarded}));
+  S.stopEl=found.total;
+  S.T0=null;
+  updateUI();
+  updateClockDisplay();
+  switchTab('timer');
+  showToast(`Série "${found.drillName}" aberta para revisão.`);
+};
+
+function exportCSV(){
+  if(!history.length){showToast('Nenhuma série salva para exportar.');return;}
+  const rows=['Data_Hora,Exercicio,Modalidade,Tiro_Num,Split_Segundos,Tempo_Total_Segundos,Descartado'];
+  history.slice().reverse().forEach(run=>{
+    const dt=new Date(run.ts).toISOString();
+    let prevT=0;
+    (run.shots||[]).forEach((shot, idx)=>{
+      const split=idx===0?shot.t:Math.round((shot.t-prevT)*100)/100;
+      prevT=shot.t;
+      rows.push(`"${dt}","${run.drillName}","${run.mode}",${idx+1},${split.toFixed(2)},${shot.t.toFixed(2)},${shot.discarded?'Sim':'Nao'}`);
     });
   });
-  return rows.join('\n');
+
+  const csvContent=rows.join('\n');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(csvContent).then(()=>showToast('CSV copiado para a área de transferência! 📋'));
+  }else{
+    showToast('Copie os dados gerados.');
+  }
 }
-function copyText(text){
-  const ok=()=>toast('CSV copiado. Cole em uma planilha.');
-  const fallback=()=>{
-    const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';
-    document.body.appendChild(ta);ta.select();
-    try{document.execCommand('copy')?ok():toast('Não foi possível copiar.');}catch(e){toast('Não foi possível copiar.');}
-    ta.remove();
-  };
-  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(ok,fallback);else fallback();
+
+/* ==========================================================================
+   NAVEGAÇÃO POR ABAS & MODAL
+   ========================================================================== */
+function switchTab(tabId){
+  $$('.view').forEach(v=>v.classList.toggle('active', v.id==='v-'+tabId));
+  $$('.tabs button').forEach(b=>b.setAttribute('aria-current', b.dataset.tab===tabId?'page':'false'));
+
+  if(tabId==='drills') renderDrillsList();
+  if(tabId==='stats') renderStatsTab();
+  if(tabId==='history') renderHistoryTab();
+  if(tabId==='timer') resizeCanvas();
 }
-$('#btn-csv').addEventListener('click',()=>{if(!hist.length){toast('Não há séries para copiar.');return;}copyText(csvText());});
-$('#btn-clear').addEventListener('click',e=>{
-  const b=e.currentTarget;
-  if(b.dataset.armed){hist=[];store(KH,hist);b.textContent='Apagar tudo';delete b.dataset.armed;toast('Histórico apagado.');return;}
-  b.dataset.armed='1';b.textContent='Toque para confirmar';
-  setTimeout(()=>{delete b.dataset.armed;b.textContent='Apagar tudo';},3000);
+
+$$('.tabs button').forEach(b=>{
+  b.addEventListener('click',()=>switchTab(b.dataset.tab));
 });
 
-/* ---------- aviso rápido ---------- */
-let tt;
-function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2800);}
+// Modal de novo treino
+$('#btn-new-drill').addEventListener('click',()=>{
+  $('#m-drill-name').value='';
+  $('#m-drill-target').value='0';
+  $('#m-drill-par').value='0';
+  $('#modal-drill').hidden=false;
+});
+$('#btn-drill-cancel').addEventListener('click',()=>{
+  $('#modal-drill').hidden=true;
+});
+$('#btn-drill-save').addEventListener('click',()=>{
+  const name=$('#m-drill-name').value.trim();
+  if(!name){showToast('Digite um nome para o treino.');return;}
+  const mode=$('#m-drill-mode button[aria-pressed="true"]')?.dataset.v||'mic';
+  const targetShots=parseInt($('#m-drill-target').value, 10)||0;
+  const parVal=parseFloat($('#m-drill-par').value)||0;
 
-/* ---------- laço de quadros ---------- */
-function frame(){
-  if(S.state==='wait'&&AC&&AC.currentTime>=S.T0){S.state='run';render();}
-  if(S.state==='run'){
-    const el=AC.currentTime-S.T0;setClock(el);
-    if(el>=set.maxTime)stopRun();
-  }
-  if(S.testing){lvl=Math.max(lvl*0.88,Mic.takePeak());$('#m-bar').style.width=(disp(lvl)*100)+'%';}
-  requestAnimationFrame(frame);
+  const newDrill={
+    id:'drill_' + Date.now(),
+    name:name,
+    mode:mode,
+    par:parVal,
+    targetShots:targetShots,
+    fav:true,
+    desc:'Exercício personalizado'
+  };
+
+  drills.push(newDrill);
+  saveData(KD, drills);
+  $('#modal-drill').hidden=true;
+  renderDrillsList();
+  showToast('Novo exercício criado com sucesso! 🎯');
+});
+
+$$('#m-drill-mode button').forEach(b=>{
+  b.addEventListener('click',e=>{
+    $$('#m-drill-mode button').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+  });
+});
+
+/* ==========================================================================
+   EVENTOS DE INTERAÇÃO & AJUSTES
+   ========================================================================== */
+$('#btn-main').addEventListener('click',()=>{
+  if(S.state==='run'||S.state==='wait') stopTimer(true);
+  else startTimer();
+});
+
+$('#btn-reset').addEventListener('click', resetAll);
+
+// Toque na tela para Dry Fire
+$('#stage').addEventListener('pointerdown', handleScreenTap);
+
+// Presets de Par Time
+$$('.preset-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const val=parseFloat(btn.dataset.par);
+    cfg.par=val;
+    cfg.parOn=true;
+    saveData(KS, cfg);
+    updateUI();
+    showToast(`Par Time configurado para ${val.toFixed(2)}s`);
+  });
+});
+
+$('#par-toggle').addEventListener('change',e=>{
+  cfg.parOn=e.target.checked;
+  saveData(KS, cfg);
+  updateUI();
+});
+$('#par-minus').addEventListener('click',()=>{
+  cfg.par=Math.max(0.1, Math.round((cfg.par - 0.1)*100)/100);
+  cfg.parOn=true;
+  saveData(KS, cfg);
+  updateUI();
+});
+$('#par-plus').addEventListener('click',()=>{
+  cfg.par=Math.min(30, Math.round((cfg.par + 0.1)*100)/100);
+  cfg.parOn=true;
+  saveData(KS, cfg);
+  updateUI();
+});
+$('#par-val').addEventListener('change',e=>{
+  const v=parseFloat(e.target.value)||2.5;
+  cfg.par=Math.max(0.1, Math.min(30, Math.round(v*100)/100));
+  cfg.parOn=true;
+  saveData(KS, cfg);
+  updateUI();
+});
+
+// Seletor de Modo na Barra Superior (Live Fire / Dry Fire)
+$$('[data-k="detect"] button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    cfg.detect=btn.dataset.v;
+    saveData(KS, cfg);
+    $$('[data-k="detect"] button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.v===cfg.detect)));
+    updateUI();
+  });
+});
+
+// Filtros da Biblioteca de Treinos
+$$('#filter-drills button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    $$('#filter-drills button').forEach(b=>b.setAttribute('aria-pressed','false'));
+    btn.setAttribute('aria-pressed','true');
+    renderDrillsList(btn.dataset.f);
+  });
+});
+
+// Botão rápido de trocar treino na barra superior
+$('#btn-curr-drill').addEventListener('click',()=>switchTab('drills'));
+
+// Ajustes & Inputs
+$$('#v-settings [data-k]').forEach(el=>{
+  const k=el.dataset.k;
+  if(el.type==='checkbox') el.checked=!!cfg[k];
+  else if(el.classList.contains('seg-group')){
+    el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', String(cfg[k]===b.dataset.v)));
+  }else el.value=cfg[k];
+
+  el.addEventListener('change',()=>{
+    if(el.type==='checkbox') cfg[k]=el.checked;
+    else cfg[k]=el.value;
+    saveData(KS, cfg);
+    applyTheme();
+    updateUI();
+  });
+});
+
+// Sliders de Ajuste
+const sensInput=$('[data-k="sens"]');
+if(sensInput){
+  sensInput.value=cfg.sens;
+  $('#val-sens').textContent=cfg.sens;
+  sensInput.addEventListener('input',()=>{
+    cfg.sens=parseInt(sensInput.value,10);
+    $('#val-sens').textContent=cfg.sens;
+    saveData(KS, cfg);
+  });
 }
 
-applyUI();render();requestAnimationFrame(frame);
+const freqInput=$('[data-k="freq"]');
+if(freqInput){
+  freqInput.value=cfg.freq;
+  $('#val-freq').textContent=cfg.freq+' Hz';
+  freqInput.addEventListener('input',()=>{
+    cfg.freq=parseInt(freqInput.value,10);
+    $('#val-freq').textContent=cfg.freq+' Hz';
+    saveData(KS, cfg);
+  });
+}
+
+window.setFixedDelay=function(sec){
+  cfg.delayMode='fixed';
+  cfg.dFix=sec;
+  saveData(KS, cfg);
+  $$('[data-k="delayMode"] button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.v==='fixed')));
+  $('[data-k="dFix"]').value=sec;
+  showToast(`Atraso fixo configurado: ${sec}s`);
+};
+
+// Teste de som do beep
+$('#btn-test-beep').addEventListener('click',()=>{
+  const ac=getAudioCtx();
+  ac.resume();
+  playBeepAt(ac.currentTime + 0.05, cfg.freq, cfg.dur/1000, cfg.vol);
+});
+
+// Teste de microfone
+let testTimer=null;
+$('#btn-mic-test').addEventListener('click',async()=>{
+  const btn=$('#btn-mic-test');
+  if(S.testingMic){
+    S.testingMic=false;
+    MicManager.stop();
+    btn.textContent='Testar Agora';
+    showToast('Teste finalizado.');
+    return;
+  }
+  const ok=await MicManager.start();
+  if(!ok){showToast('Não foi possível acessar o microfone.');return;}
+  S.testingMic=true;
+  btn.textContent='Parar Teste';
+  showToast('Microfone ativo. Bata palmas para testar!');
+});
+
+// Exportar CSV
+$('#btn-export-csv').addEventListener('click', exportCSV);
+
+// Limpar Histórico
+$('#btn-clear-hist').addEventListener('click',()=>{
+  if(confirm('Tem certeza de que deseja apagar todo o histórico de séries salvas?')){
+    history=[];
+    saveData(KH, history);
+    renderHistoryTab();
+    renderStatsTab();
+    showToast('Histórico limpo.');
+  }
+});
+
+/* ==========================================================================
+   FEEDBACK DE TOAST
+   ========================================================================== */
+let toastTimeout;
+function showToast(msg){
+  const el=$('#toast');
+  el.textContent=msg;
+  el.classList.add('on');
+  clearTimeout(toastTimeout);
+  toastTimeout=setTimeout(()=>el.classList.remove('on'), 2500);
+}
+
+/* ==========================================================================
+   LOOP PRINCIPAL DE ANIMAÇÃO (requestAnimationFrame)
+   ========================================================================== */
+function mainLoop(){
+  const ac=audioCtx;
+
+  // Transição do estado 'wait' para 'run' no momento exato do beep de largada
+  if(S.state==='wait' && S.T0!=null && ac && ac.currentTime >= S.T0){
+    S.state='run';
+    S.lastShotTimestamp=ac.currentTime;
+    haptic(200);
+    updateUI();
+  }
+
+  // Atualização em tempo real do cronômetro durante a série
+  if(S.state==='run' && S.T0!=null && ac){
+    const elapsed=ac.currentTime - S.T0;
+    setClock(elapsed);
+
+    // Auto-stop após período de silêncio configurável
+    if(cfg.autoStop>0 && S.lastShotTimestamp>0){
+      const silenceElapsed=ac.currentTime - S.lastShotTimestamp;
+      if(silenceElapsed >= cfg.autoStop){
+        stopTimer(false);
+        showToast(`Série encerrada por silêncio (${cfg.autoStop}s).`);
+      }
+    }
+  }
+
+  // Desenha a onda de áudio na tela
+  drawWaveform();
+
+  requestAnimationFrame(mainLoop);
+}
+
+/* ==========================================================================
+   INICIALIZAÇÃO
+   ========================================================================== */
+applyTheme();
+updateUI();
+renderDrillsList();
+requestAnimationFrame(mainLoop);
+
 })();
 </script>
 </body>

@@ -38,6 +38,10 @@ public class MainActivity extends Activity {
         setContentView(web);
         applyBars(isNight());
 
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_AUDIO);
+        }
+
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
                 .setDomain(HOST)
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -126,6 +130,20 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setTheme(final boolean dark) {
             runOnUiThread(() -> applyBars(dark));
+        }
+
+        @JavascriptInterface
+        public void vibrate(final long ms) {
+            try {
+                android.os.Vibrator v = (android.os.Vibrator) getSystemService(VIBRATOR_SERVICE);
+                if (v != null && v.hasVibrator()) {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        v.vibrate(android.os.VibrationEffect.createOneShot(ms, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+                    } else {
+                        v.vibrate(ms);
+                    }
+                }
+            } catch (Exception ignored) {}
         }
     }
 
