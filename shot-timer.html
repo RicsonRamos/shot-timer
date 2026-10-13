@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Shot Timer</title>
+<style>
+:root{--bg:#E8EAE5;--ink:#1E2521;--mute:#6A736C;--line:#CBD0C8;--tint:#DCDFD8;--sig:#D93A26}
+:root[data-theme="dark"]{--bg:#121613;--ink:#E7EAE4;--mute:#8A938C;--line:#2B322D;--tint:#1B211D;--sig:#F0553F}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{height:100%;background:var(--bg);color:var(--ink);overscroll-behavior:none}
+body{font:16px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;font-variant-numeric:tabular-nums}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding-top:env(safe-area-inset-top)}
+.view{display:none;flex:1;min-height:0;flex-direction:column;padding:6px 20px 14px}
+.view.active{display:flex}
+
+/* Timer */
+.top{display:flex;align-items:center;justify-content:space-between;height:48px;flex:none}
+.status{font-size:15px;font-weight:500;color:var(--mute)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px}
+.seg button{padding:6px 14px;border-radius:999px;font-size:14px;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:disabled{opacity:.4}
+.stage{flex:1;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
+.clock{font-size:clamp(76px,28vw,150px);font-weight:300;letter-spacing:-.04em;line-height:1;transition:color .4s}
+.clock span{color:var(--mute);transition:color .4s}
+.stage.dim .clock{opacity:.4}
+.stage.hit .clock,.stage.hit .clock span{color:var(--sig);transition:none}
+.sub{height:40px;display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:15px}
+.sub button{width:40px;height:40px;border-radius:50%;font-size:28px;line-height:1;color:var(--ink)}
+#sub-lab{min-width:210px;text-align:center}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);padding:12px 0 10px;flex:none}
+.stats div{display:flex;flex-direction:column;gap:2px}
+.stats b{font-size:20px;font-weight:600}
+.stats span{font-size:12.5px;color:var(--mute)}
+.shots{flex:0 1 30%;min-height:84px;overflow-y:auto;border-top:1px solid var(--line)}
+.shots .head,.shots li{display:grid;grid-template-columns:44px 1fr auto;align-items:baseline;padding:9px 4px}
+.shots .head{position:sticky;top:0;background:var(--bg);font-size:12.5px;color:var(--mute)}
+.shots ol{list-style:none}
+.shots li{border-bottom:1px solid var(--line);font-size:20px;font-weight:500}
+.shots li .n{font-size:14px;color:var(--mute);font-weight:400}
+.shots li .tt{font-size:15px;color:var(--mute);font-weight:400}
+.shots li.sel{box-shadow:inset 3px 0 0 var(--sig);background:var(--tint)}
+.shots .empty{padding:18px 4px;color:var(--mute);font-size:14px}
+.par{display:flex;align-items:center;gap:10px;height:58px;border-top:1px solid var(--line);flex:none}
+.par .lbl{flex:1;font-weight:500}
+.par .step{width:40px;height:40px;border:1px solid var(--line);border-radius:12px;font-size:22px;line-height:1}
+.par .num{width:70px;text-align:center;font-size:20px;font-weight:500;background:none;border:0;border-bottom:1px solid var(--line);padding:4px 0;-moz-appearance:textfield}
+.par .unit{color:var(--mute);margin-left:-4px}
+.par.off .num,.par.off .step,.par.off .unit{opacity:.35}
+.sw{-webkit-appearance:none;appearance:none;width:46px;height:28px;border-radius:14px;background:var(--line);position:relative;transition:background .2s;flex:none;cursor:pointer}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--bg);transition:transform .2s}
+.sw:checked{background:var(--ink)}
+.sw:checked::after{transform:translateX(18px)}
+.actions{display:flex;gap:12px;flex:none;padding-top:6px}
+.main{flex:1;height:68px;border-radius:18px;font-size:22px;font-weight:600}
+.main.go{background:var(--sig);color:#fff}
+.main.stop{background:var(--ink);color:var(--bg)}
+.main.cancel{border:1.5px solid var(--ink)}
+.main:active{transform:scale(.99)}
+.reset{width:104px;height:68px;border:1.5px solid var(--line);border-radius:18px;font-weight:500}
+
+/* Histórico e Ajustes */
+h1{font-size:26px;font-weight:600;padding:10px 0 6px}
+.headrow{display:flex;align-items:center;justify-content:space-between}
+.scroll{flex:1;overflow-y:auto;min-height:0}
+.link{font-size:15px;font-weight:500;padding:8px 0 8px 12px}
+.hist{list-style:none}
+.hist li{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.hist .h-date{display:block;font-weight:500}
+.hist .h-sub{display:block;font-size:13.5px;color:var(--mute);margin-top:2px}
+.hist .h-tot{font-size:26px;font-weight:300}
+.hist .del{font-size:13px;color:var(--mute);padding:10px 4px}
+.hist .del.armed{color:var(--sig);font-weight:600}
+.hist .empty{display:block;padding:24px 0;color:var(--mute);cursor:default;border:0}
+h2{font-size:15px;font-weight:600;margin:24px 0 2px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;border-bottom:1px solid var(--line)}
+.row .l{flex:1}
+.row .hint{display:block;font-size:13px;color:var(--mute)}
+.row .val{min-width:66px;text-align:right;color:var(--mute)}
+.row input[type=range]{width:140px;accent-color:var(--ink)}
+.row .num{width:84px;text-align:right;font-size:17px;background:none;border:0;border-bottom:1px solid var(--line);padding:4px 0}
+.btn{border:1.5px solid var(--ink);border-radius:12px;padding:10px 16px;font-weight:500}
+.btn.danger{border-color:var(--sig);color:var(--sig)}
+.meter{position:relative;height:10px;border-radius:5px;background:var(--tint);overflow:hidden;margin:14px 0 6px}
+#m-bar{height:100%;width:0;background:var(--ink)}
+#m-thr{position:absolute;top:0;bottom:0;width:3px;background:var(--sig)}
+.metrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+#m-hit{font-size:14px;color:var(--mute);opacity:0;transition:opacity .4s}
+#m-hit.on{opacity:1;color:var(--sig);transition:none}
+
+.tabs{display:flex;flex:none;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;height:54px;font-size:15px;font-weight:500;color:var(--mute);position:relative}
+.tabs button[aria-current="page"]{color:var(--ink)}
+.tabs button[aria-current="page"]::before{content:"";position:absolute;top:-1px;left:30%;right:30%;height:2px;background:var(--ink)}
+#toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translate(-50%,12px);max-width:86%;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:14px;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media (max-height:640px){.clock{font-size:clamp(64px,22vw,110px)}.stats{padding:8px 0}.main,.reset{height:58px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <main id="v-timer" class="view active">
+    <header class="top">
+      <div id="status" class="status" aria-live="polite">Pronto</div>
+      <div class="seg" data-k="detect" role="group" aria-label="Detecção do tiro">
+        <button data-v="mic">Microfone</button>
+        <button data-v="tap">Toque</button>
+      </div>
+    </header>
+
+    <section id="stage" class="stage">
+      <div id="clock" class="clock" role="timer">0<span>,</span><span>00</span></div>
+      <div class="sub">
+        <button id="rv-prev" aria-label="Tiro anterior" hidden>‹</button>
+        <div id="sub-lab"></div>
+        <button id="rv-next" aria-label="Próximo tiro" hidden>›</button>
+      </div>
+    </section>
+
+    <div class="stats">
+      <div><b id="st-n">0</b><span>Tiros</span></div>
+      <div><b id="st-first">—</b><span>1º tiro</span></div>
+      <div><b id="st-best">—</b><span>Melhor split</span></div>
+      <div><b id="st-avg">—</b><span>Split médio</span></div>
+    </div>
+
+    <section class="shots" id="shots"></section>
+
+    <div class="par off" id="par">
+      <span class="lbl">Par</span>
+      <button class="step" id="par-minus" aria-label="Diminuir par">−</button>
+      <input class="num" id="par-val" data-k="par" type="number" min="0.1" max="30" step="0.01" inputmode="decimal" aria-label="Tempo do par em segundos">
+      <span class="unit">s</span>
+      <button class="step" id="par-plus" aria-label="Aumentar par">+</button>
+      <input class="sw" id="par-on" data-k="parOn" type="checkbox" aria-label="Ativar par">
+    </div>
+
+    <div class="actions">
+      <button id="btn-reset" class="reset" hidden>Zerar</button>
+      <button id="btn-main" class="main go">Iniciar</button>
+    </div>
+  </main>
+
+  <main id="v-history" class="view">
+    <div class="headrow"><h1>Histórico</h1><button class="link" id="btn-csv">Copiar CSV</button></div>
+    <div class="scroll"><ul class="hist" id="hist"></ul></div>
+  </main>
+
+  <main id="v-settings" class="view">
+    <h1>Ajustes</h1>
+    <div class="scroll">
+      <h2>Detecção por microfone</h2>
+      <div class="row">
+        <div class="l">Sensibilidade<span class="hint">Maior = detecta tiros mais fracos</span></div>
+        <input type="range" data-k="sens" min="1" max="10" step="1" aria-label="Sensibilidade">
+        <span class="val" data-out="sens"></span>
+      </div>
+      <div class="meter"><div id="m-bar"></div><div id="m-thr"></div></div>
+      <div class="metrow">
+        <button class="btn" id="btn-test">Testar microfone</button>
+        <span id="m-hit">Tiro detectado</span>
+      </div>
+      <div class="row">
+        <div class="l">Intervalo mínimo entre tiros<span class="hint">Evita contar o eco duas vezes</span></div>
+        <input class="num" type="number" data-k="minGap" min="30" max="500" step="10" inputmode="numeric" aria-label="Intervalo mínimo em milissegundos">
+        <span class="val" style="min-width:28px">ms</span>
+      </div>
+
+      <h2>Largada</h2>
+      <div class="row">
+        <div class="l">Atraso até o sinal</div>
+        <div class="seg" data-k="delayMode" role="group" aria-label="Tipo de atraso">
+          <button data-v="rand">Aleatório</button><button data-v="fixed">Fixo</button><button data-v="none">Nenhum</button>
+        </div>
+      </div>
+      <div class="row" id="row-dmin"><div class="l">Atraso mínimo</div>
+        <input class="num" type="number" data-k="dMin" min="0" max="30" step="0.1" inputmode="decimal"><span class="val" style="min-width:16px">s</span></div>
+      <div class="row" id="row-dmax"><div class="l">Atraso máximo</div>
+        <input class="num" type="number" data-k="dMax" min="0" max="30" step="0.1" inputmode="decimal"><span class="val" style="min-width:16px">s</span></div>
+      <div class="row" id="row-dfix"><div class="l">Atraso fixo</div>
+        <input class="num" type="number" data-k="dFix" min="0" max="30" step="0.1" inputmode="decimal"><span class="val" style="min-width:16px">s</span></div>
+      <div class="row">
+        <div class="l">Dizer “Preparar”<span class="hint">Aviso por voz antes do atraso</span></div>
+        <input class="sw" type="checkbox" data-k="voice" aria-label="Aviso por voz">
+      </div>
+
+      <h2>Sinal sonoro</h2>
+      <div class="row"><div class="l">Frequência</div>
+        <input type="range" data-k="freq" min="600" max="4000" step="50"><span class="val" data-out="freq" data-fmt="{v} Hz"></span></div>
+      <div class="row"><div class="l">Duração</div>
+        <input type="range" data-k="dur" min="100" max="600" step="10"><span class="val" data-out="dur" data-fmt="{v} ms"></span></div>
+      <div class="row"><div class="l">Volume</div>
+        <input type="range" data-k="vol" min="10" max="100" step="5"><span class="val" data-out="vol" data-fmt="{v}%"></span></div>
+      <div class="row"><div class="l">Ouvir o sinal</div><button class="btn" id="btn-beep">Testar sinal</button></div>
+
+      <h2>Série</h2>
+      <div class="row">
+        <div class="l">Parar após N tiros<span class="hint">0 = só para manualmente</span></div>
+        <input class="num" type="number" data-k="maxShots" min="0" max="99" step="1" inputmode="numeric">
+      </div>
+      <div class="row">
+        <div class="l">Tempo máximo<span class="hint">Para sozinho ao atingir</span></div>
+        <input class="num" type="number" data-k="maxTime" min="5" max="600" step="5" inputmode="numeric"><span class="val" style="min-width:16px">s</span>
+      </div>
+      <div class="row">
+        <div class="l">Manter a tela ligada</div>
+        <input class="sw" type="checkbox" data-k="wake" aria-label="Manter a tela ligada">
+      </div>
+
+      <h2>Aparência e dados</h2>
+      <div class="row">
+        <div class="l">Tema</div>
+        <div class="seg" data-k="theme" role="group" aria-label="Tema">
+          <button data-v="auto">Auto</button><button data-v="light">Claro</button><button data-v="dark">Escuro</button>
+        </div>
+      </div>
+      <div class="row"><div class="l">Histórico salvo neste aparelho</div><button class="btn danger" id="btn-clear">Apagar tudo</button></div>
+      <div style="height:24px"></div>
+    </div>
+  </main>
+
+  <nav class="tabs" aria-label="Seções">
+    <button data-v="timer" aria-current="page">Timer</button>
+    <button data-v="history" aria-current="false">Histórico</button>
+    <button data-v="settings" aria-current="false">Ajustes</button>
+  </nav>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const KS='shottimer.set.v1', KH='shottimer.hist.v1';
+const DEF={detect:'mic',sens:6,minGap:90,delayMode:'rand',dMin:1,dMax:4,dFix:3,voice:false,freq:2000,dur:250,vol:100,maxShots:0,maxTime:60,wake:true,parOn:false,par:1.5,theme:'auto'};
+function load(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+const set=Object.assign({},DEF,load(KS,{}));
+let hist=load(KH,[]); if(!Array.isArray(hist)) hist=[];
+
+/* ---------- formatação ---------- */
+const pad=n=>(n<10?'0':'')+n;
+function parts(t){t=Math.max(0,t);const c=Math.round(t*100),s=Math.floor(c/100);return{i:s>=60?Math.floor(s/60)+':'+pad(s%60):String(s),c:pad(c%100)};}
+const fmt=t=>{const p=parts(t);return p.i+','+p.c;};
+const fmtN=v=>String(v).replace('.',',');
+
+/* ---------- tema ---------- */
+const sysParam=new URLSearchParams(location.search).get('sys');
+let sysTheme=sysParam||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+window.setSystemTheme=v=>{sysTheme=v;applyTheme();};
+function applyTheme(){
+  const t=(set.theme==='light'||set.theme==='dark')?set.theme:sysTheme;
+  document.documentElement.setAttribute('data-theme',t);
+  try{if(window.AndroidBridge)window.AndroidBridge.setTheme(t==='dark');}catch(e){}
+}
+
+/* ---------- estado ---------- */
+const S={state:'idle',shots:[],sel:-1,T0:0,stopEl:0,review:false,ignoreEnd:0,parStart:Infinity,parEnd:Infinity,nodes:[],testing:false};
+
+/* ---------- áudio ---------- */
+let AC=null;
+function ctx(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;AC=new C({latencyHint:'interactive'});}return AC;}
+function beepAt(t,freq,dur,vol,track){
+  const ac=ctx(),o=ac.createOscillator(),g=ac.createGain();
+  o.type='square';o.frequency.value=freq;
+  const pk=Math.max(0.02,vol*0.6);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(pk,t+0.004);
+  g.gain.setValueAtTime(pk,t+dur-0.004);
+  g.gain.linearRampToValueAtTime(0,t+dur);
+  o.connect(g);g.connect(ac.destination);
+  o.start(t);o.stop(t+dur+0.02);
+  if(track!==false)S.nodes.push(o,g);
+}
+function killNodes(){S.nodes.forEach(n=>{try{if(n.stop)n.stop();n.disconnect();}catch(e){}});S.nodes=[];}
+function sayReady(){
+  return new Promise(res=>{
+    try{const u=new SpeechSynthesisUtterance('Preparar');u.lang='pt-BR';u.onend=u.onerror=()=>res();
+      speechSynthesis.cancel();speechSynthesis.speak(u);setTimeout(res,2000);}catch(e){res();}
+  });
+}
+
+/* ---------- microfone ---------- */
+const threshold=()=>0.85*Math.pow(0.035/0.85,(set.sens-1)/9);
+const disp=x=>x<=0.001?0:Math.min(1,(20*Math.log10(x)+60)/60);
+const Mic={stream:null,src:null,proc:null,mute:null,ready:false,peak:0,armed:true,quiet:0,handler:null,
+  async start(){
+    const ac=ctx();
+    if(this.ready){const tr=this.stream&&this.stream.getAudioTracks()[0];
+      if(tr&&tr.readyState==='live'){this.armed=true;this.quiet=0;return true;}this.stop();}
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return false;
+    try{
+      await ac.resume();
+      this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
+    }catch(e){return false;}
+    this.src=ac.createMediaStreamSource(this.stream);
+    this.proc=ac.createScriptProcessor(256,1,1);
+    this.mute=ac.createGain();this.mute.gain.value=0;
+    this.src.connect(this.proc);this.proc.connect(this.mute);this.mute.connect(ac.destination);
+    this.proc.onaudioprocess=ev=>this.block(ev);
+    this.ready=true;this.armed=true;this.quiet=0;this.peak=0;
+    return true;
+  },
+  stop(){
+    if(!this.ready)return;
+    try{this.proc.onaudioprocess=null;this.src.disconnect();this.proc.disconnect();this.mute.disconnect();}catch(e){}
+    try{this.stream.getTracks().forEach(t=>t.stop());}catch(e){}
+    this.ready=false;this.stream=null;
+  },
+  takePeak(){const p=this.peak;this.peak=0;return p;},
+  block(ev){
+    const d=ev.inputBuffer.getChannelData(0),n=d.length,sr=AC.sampleRate,thr=threshold();
+    let pk=0,hit=-1;
+    for(let i=0;i<n;i++){const a=d[i]<0?-d[i]:d[i];if(a>pk)pk=a;if(hit<0&&a>=thr)hit=i;}
+    if(pk>this.peak)this.peak=pk;
+    if(!this.armed){
+      if(pk<thr*0.5){this.quiet+=n/sr;if(this.quiet>=0.015)this.armed=true;}else this.quiet=0;
+      return;
+    }
+    if(hit>=0){
+      this.armed=false;this.quiet=0;
+      if(this.handler)this.handler(ev.playbackTime-(n-hit)/sr);
+    }
+  }
+};
+
+/* ---------- motor do timer ---------- */
+function wakeSet(on){
+  try{
+    if(on&&set.wake&&'wakeLock' in navigator){navigator.wakeLock.request('screen').then(l=>{wakeSet.l=l;}).catch(()=>{});}
+    else if(!on&&wakeSet.l){wakeSet.l.release();wakeSet.l=null;}
+  }catch(e){}
+}
+function pickDelay(){
+  if(set.delayMode==='none')return 0;
+  if(set.delayMode==='fixed')return set.dFix;
+  const a=Math.min(set.dMin,set.dMax),b=Math.max(set.dMin,set.dMax);
+  return a+Math.random()*(b-a);
+}
+async function begin(){
+  const ac=ctx();ac.resume();killNodes();
+  S.state='wait';S.shots=[];S.sel=-1;S.review=false;S.stopEl=0;
+  render();
+  if(set.detect==='mic'){
+    const ok=await Mic.start();
+    if(S.state!=='wait'){if(ok)Mic.stop();return;}
+    if(!ok){S.state='idle';render();toast('Sem acesso ao microfone. Permita o acesso ou use o modo Toque.');return;}
+    Mic.handler=micShot;
+  }
+  wakeSet(true);
+  if(set.voice){await sayReady();if(S.state!=='wait'){Mic.stop();return;}}
+  const lat=(ac.baseLatency||0)+(ac.outputLatency||0),dur=set.dur/1000,vol=set.vol/100;
+  S.T0=ac.currentTime+pickDelay()+0.06;
+  S.ignoreEnd=dur+0.12+lat;
+  beepAt(S.T0,set.freq,dur,vol);
+  if(set.parOn){S.parStart=set.par;S.parEnd=set.par+dur+0.12+lat;beepAt(S.T0+set.par,set.freq,dur,vol);}
+  else{S.parStart=Infinity;S.parEnd=Infinity;}
+}
+function micShot(t){
+  if(S.state!=='run')return;
+  const rel=t-S.T0;
+  if(rel<S.ignoreEnd)return;
+  if(rel>=S.parStart&&rel<S.parEnd)return;
+  const last=S.shots.length?S.shots[S.shots.length-1]:-1;
+  if(last>=0&&rel-last<set.minGap/1000)return;
+  addShot(rel);
+}
+function addShot(rel){
+  S.shots.push(rel);
+  flash();renderShots();renderStats();
+  if(set.maxShots>0&&S.shots.length>=set.maxShots)stopRun();
+}
+function stopRun(){
+  if(S.state!=='run'&&S.state!=='wait')return;
+  const wasRun=S.state==='run';
+  killNodes();Mic.stop();Mic.handler=null;wakeSet(false);
+  try{speechSynthesis.cancel();}catch(e){}
+  if(wasRun){
+    S.stopEl=Math.max(0,AC.currentTime-S.T0);
+    S.state='done';S.review=false;S.sel=-1;
+    if(S.shots.length){
+      hist.unshift({id:Date.now(),ts:Date.now(),shots:S.shots.slice(),par:set.parOn?set.par:null,total:S.shots[S.shots.length-1]});
+      hist=hist.slice(0,300);store(KH,hist);
+    }
+  }else{S.state='idle';S.shots=[];}
+  render();
+}
+function onMain(){
+  if(S.state==='run'||S.state==='wait')stopRun();
+  else begin();
+}
+function resetAll(){S.state='idle';S.shots=[];S.sel=-1;S.review=false;S.stopEl=0;render();}
+function flash(){
+  const st=$('#stage');st.classList.add('hit');clearTimeout(flash.t);
+  flash.t=setTimeout(()=>st.classList.remove('hit'),120);
+}
+
+/* ---------- renderização ---------- */
+let lastClock='';
+function setClock(t){
+  const p=parts(t),key=p.i+','+p.c;
+  if(key===lastClock)return;lastClock=key;
+  $('#clock').innerHTML=p.i+'<span>,</span><span>'+p.c+'</span>';
+}
+function clockValue(){
+  if(S.state==='run')return AC.currentTime-S.T0;
+  if(S.state==='done'){if(S.sel>=0)return S.shots[S.sel];return S.shots.length?S.shots[S.shots.length-1]:S.stopEl;}
+  return 0;
+}
+const splitOf=i=>i?S.shots[i]-S.shots[i-1]:S.shots[0];
+function delaySummary(){
+  if(set.delayMode==='none')return 'Sem atraso';
+  if(set.delayMode==='fixed')return 'Atraso '+fmtN(set.dFix)+' s';
+  return 'Atraso '+fmtN(set.dMin)+'–'+fmtN(set.dMax)+' s';
+}
+function renderSub(){
+  const st=S.state,n=S.shots.length,nav=st==='done'&&n>0;
+  $('#rv-prev').hidden=$('#rv-next').hidden=!nav;
+  let t='';
+  if(st==='idle')t=delaySummary();
+  else if(st==='wait')t='Aguarde o sinal';
+  else if(st==='run')t=set.detect==='tap'?'Toque aqui a cada tiro':'';
+  else if(!n)t='Nenhum tiro registrado';
+  else if(S.sel<0)t='Total · '+n+(n===1?' tiro':' tiros');
+  else t='Tiro '+(S.sel+1)+' de '+n+' · split '+fmt(splitOf(S.sel));
+  $('#sub-lab').textContent=t;
+}
+function renderStats(){
+  const sh=S.shots,n=sh.length,rest=sh.map((t,i)=>i?t-sh[i-1]:t).slice(1);
+  $('#st-n').textContent=n;
+  $('#st-first').textContent=n?fmt(sh[0]):'—';
+  $('#st-best').textContent=rest.length?fmt(Math.min.apply(null,rest)):'—';
+  $('#st-avg').textContent=rest.length?fmt(rest.reduce((a,b)=>a+b,0)/rest.length):'—';
+}
+function renderShots(){
+  const box=$('#shots');
+  if(!S.shots.length){box.innerHTML='<div class="empty">Os tiros aparecem aqui.</div>';return;}
+  box.innerHTML='<div class="head"><span>Tiro</span><span>Split</span><span>Tempo</span></div><ol>'+
+    S.shots.map((t,i)=>'<li data-i="'+i+'" class="'+(i===S.sel?'sel':'')+'"><span class="n">'+(i+1)+'</span><span>'+fmt(splitOf(i))+'</span><span class="tt">'+fmt(t)+'</span></li>').join('')+'</ol>';
+  if(S.state==='run')box.scrollTop=box.scrollHeight;
+}
+function render(){
+  const st=S.state,busy=st==='run'||st==='wait';
+  $('#status').textContent=st==='idle'?'Pronto':st==='wait'?'Preparar…':st==='run'?(set.detect==='mic'?'Atire':'Toque a cada tiro'):(S.review?'Revisão':'Parado');
+  const b=$('#btn-main');
+  b.className='main '+(st==='run'?'stop':st==='wait'?'cancel':'go');
+  b.textContent=st==='run'?'Parar':st==='wait'?'Cancelar':'Iniciar';
+  $('#btn-reset').hidden=st!=='done';
+  $('#stage').classList.toggle('dim',st==='idle'||st==='wait');
+  $$('#v-timer .seg button,#par-minus,#par-plus,#par-val,#par-on').forEach(x=>{x.disabled=busy;});
+  lastClock='';setClock(clockValue());
+  renderSub();renderShots();renderStats();
+}
+function renderHistory(){
+  const ul=$('#hist');
+  if(!hist.length){ul.innerHTML='<li class="empty">Nenhuma série salva. Cada série é salva quando você para o timer.</li>';return;}
+  ul.innerHTML=hist.map(h=>{
+    const d=new Date(h.ts),n=h.shots.length;
+    const when=d.toLocaleDateString('pt-BR',{day:'numeric',month:'short'})+', '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const sub=n+(n===1?' tiro':' tiros')+' · 1º '+fmt(h.shots[0])+(h.par!=null?' · Par '+fmt(h.par):'');
+    return '<li data-id="'+h.id+'"><div><span class="h-date">'+when+'</span><span class="h-sub">'+sub+'</span></div><span class="h-tot">'+fmt(h.total)+'</span><button class="del" data-del="'+h.id+'">Excluir</button></li>';
+  }).join('');
+}
+
+/* ---------- ajustes ---------- */
+function applyUI(){
+  $$('[data-k]').forEach(el=>{
+    const k=el.dataset.k;
+    if(el.classList.contains('seg'))el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(set[k]===b.dataset.v)));
+    else if(el.type==='checkbox')el.checked=!!set[k];
+    else if(document.activeElement!==el)el.value=set[k];
+  });
+  $$('[data-out]').forEach(o=>{o.textContent=(o.dataset.fmt||'{v}').replace('{v}',fmtN(set[o.dataset.out]));});
+  $('#row-dmin').hidden=$('#row-dmax').hidden=set.delayMode!=='rand';
+  $('#row-dfix').hidden=set.delayMode!=='fixed';
+  if(document.activeElement!==$('#par-val'))$('#par-val').value=Number(set.par).toFixed(2);
+  $('#par').classList.toggle('off',!set.parOn);
+  $('#m-thr').style.left=(disp(threshold())*100)+'%';
+  applyTheme();
+}
+$$('[data-k]').forEach(el=>{
+  const k=el.dataset.k;
+  if(el.classList.contains('seg')){
+    el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;set[k]=b.dataset.v;store(KS,set);applyUI();render();});
+  }else if(el.type==='checkbox'){
+    el.addEventListener('change',()=>{set[k]=el.checked;store(KS,set);applyUI();});
+  }else if(el.type==='range'){
+    el.addEventListener('input',()=>{set[k]=parseFloat(el.value);store(KS,set);applyUI();});
+  }else if(el.type==='number'){
+    el.addEventListener('change',()=>{
+      let v=parseFloat(String(el.value).replace(',','.'));
+      const mn=parseFloat(el.min),mx=parseFloat(el.max);
+      if(isNaN(v))v=DEF[k];
+      v=Math.round(Math.min(mx,Math.max(mn,v))*100)/100;
+      set[k]=v;if(k==='par')set.parOn=true;
+      store(KS,set);applyUI();renderSub();
+    });
+  }
+});
+function setPar(v){set.par=Math.min(30,Math.max(0.1,Math.round(v*100)/100));set.parOn=true;store(KS,set);applyUI();}
+function holdRepeat(btn,fn){
+  let t1,t2;const stop=()=>{clearTimeout(t1);clearInterval(t2);};
+  btn.addEventListener('pointerdown',e=>{e.preventDefault();fn();t1=setTimeout(()=>{t2=setInterval(fn,90);},420);});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,stop));
+}
+holdRepeat($('#par-minus'),()=>setPar(set.par-0.1));
+holdRepeat($('#par-plus'),()=>setPar(set.par+0.1));
+
+/* ---------- teste de microfone e de sinal ---------- */
+let lvl=0;
+async function toggleTest(){
+  if(S.testing){stopTest();return;}
+  if(S.state==='run'||S.state==='wait'){toast('Pare o timer antes de testar.');return;}
+  const ok=await Mic.start();
+  if(!ok){toast('Sem acesso ao microfone. Permita o acesso nas permissões do app.');return;}
+  S.testing=true;
+  Mic.handler=()=>{const h=$('#m-hit');h.classList.add('on');clearTimeout(Mic.ht);Mic.ht=setTimeout(()=>h.classList.remove('on'),160);};
+  $('#btn-test').textContent='Parar teste';
+}
+function stopTest(){
+  if(!S.testing)return;
+  S.testing=false;Mic.stop();Mic.handler=null;lvl=0;
+  $('#btn-test').textContent='Testar microfone';$('#m-bar').style.width='0';
+}
+$('#btn-test').addEventListener('click',toggleTest);
+$('#btn-beep').addEventListener('click',()=>{const ac=ctx();ac.resume();beepAt(ac.currentTime+0.05,set.freq,set.dur/1000,set.vol/100,false);});
+
+/* ---------- navegação ---------- */
+function showTab(v){
+  if(v!=='settings')stopTest();
+  $$('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+v));
+  $$('.tabs button').forEach(x=>x.setAttribute('aria-current',x.dataset.v===v?'page':'false'));
+  if(v==='history')renderHistory();
+}
+$$('.tabs button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.v)));
+
+/* ---------- eventos do timer ---------- */
+$('#btn-main').addEventListener('click',onMain);
+$('#btn-reset').addEventListener('click',resetAll);
+function tapShot(){
+  if(set.detect!=='tap'||S.state!=='run')return;
+  const rel=AC.currentTime-S.T0;
+  if(rel<0.05)return;
+  const last=S.shots.length?S.shots[S.shots.length-1]:-1;
+  if(last>=0&&rel-last<0.04)return;
+  addShot(rel);
+}
+$('#stage').addEventListener('pointerdown',tapShot);
+$('#shots').addEventListener('pointerdown',tapShot);
+function stepReview(dir){
+  const n=S.shots.length;if(!n)return;
+  S.sel=((S.sel+1+dir+(n+1))%(n+1))-1;
+  setClock(clockValue());renderSub();renderShots();
+  const li=$('#shots li.sel');if(li&&li.scrollIntoView)li.scrollIntoView({block:'nearest'});
+}
+$('#rv-prev').addEventListener('click',()=>stepReview(-1));
+$('#rv-next').addEventListener('click',()=>stepReview(1));
+$('#shots').addEventListener('click',e=>{
+  const li=e.target.closest('li[data-i]');
+  if(!li||S.state!=='done')return;
+  const i=parseInt(li.dataset.i,10);S.sel=(S.sel===i)?-1:i;
+  setClock(clockValue());renderSub();renderShots();
+});
+
+/* ---------- histórico ---------- */
+$('#hist').addEventListener('click',e=>{
+  const del=e.target.closest('[data-del]');
+  if(del){
+    e.stopPropagation();
+    if(del.classList.contains('armed')){
+      hist=hist.filter(h=>String(h.id)!==del.dataset.del);store(KH,hist);renderHistory();
+    }else{
+      del.classList.add('armed');del.textContent='Confirmar';
+      setTimeout(()=>{del.classList.remove('armed');del.textContent='Excluir';},3000);
+    }
+    return;
+  }
+  const li=e.target.closest('li[data-id]');if(!li)return;
+  const h=hist.find(x=>String(x.id)===li.dataset.id);if(!h)return;
+  if(S.state==='run'||S.state==='wait'){toast('Pare o timer antes de abrir uma série.');return;}
+  S.shots=h.shots.slice();S.state='done';S.review=true;S.sel=-1;S.stopEl=h.total;
+  render();showTab('timer');
+});
+function csvText(){
+  const rows=['data,serie,tiro,split_s,tempo_s,par_s'];
+  hist.slice().reverse().forEach((h,si)=>{
+    const d=new Date(h.ts).toISOString();
+    h.shots.forEach((t,i)=>{
+      const sp=i?t-h.shots[i-1]:t;
+      rows.push([d,si+1,i+1,sp.toFixed(2),t.toFixed(2),h.par==null?'':Number(h.par).toFixed(2)].join(','));
+    });
+  });
+  return rows.join('\n');
+}
+function copyText(text){
+  const ok=()=>toast('CSV copiado. Cole em uma planilha.');
+  const fallback=()=>{
+    const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy')?ok():toast('Não foi possível copiar.');}catch(e){toast('Não foi possível copiar.');}
+    ta.remove();
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(ok,fallback);else fallback();
+}
+$('#btn-csv').addEventListener('click',()=>{if(!hist.length){toast('Não há séries para copiar.');return;}copyText(csvText());});
+$('#btn-clear').addEventListener('click',e=>{
+  const b=e.currentTarget;
+  if(b.dataset.armed){hist=[];store(KH,hist);b.textContent='Apagar tudo';delete b.dataset.armed;toast('Histórico apagado.');return;}
+  b.dataset.armed='1';b.textContent='Toque para confirmar';
+  setTimeout(()=>{delete b.dataset.armed;b.textContent='Apagar tudo';},3000);
+});
+
+/* ---------- aviso rápido ---------- */
+let tt;
+function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2800);}
+
+/* ---------- laço de quadros ---------- */
+function frame(){
+  if(S.state==='wait'&&AC&&AC.currentTime>=S.T0){S.state='run';render();}
+  if(S.state==='run'){
+    const el=AC.currentTime-S.T0;setClock(el);
+    if(el>=set.maxTime)stopRun();
+  }
+  if(S.testing){lvl=Math.max(lvl*0.88,Mic.takePeak());$('#m-bar').style.width=(disp(lvl)*100)+'%';}
+  requestAnimationFrame(frame);
+}
+
+applyUI();render();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
