@@ -17,9 +17,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-      - name: Compilar APK de debug
-        run: gradle assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
+      - name: Compilar APKs (Release assinado e Debug)
+        run: gradle assembleRelease assembleDebug --no-daemon
+      - name: Upload APK Release (Assinado)
+        uses: actions/upload-artifact@v4
         with:
-          name: shot-timer-apk
+          name: shot-timer-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+      - name: Upload APK Debug
+        uses: actions/upload-artifact@v4
+        with:
+          name: shot-timer-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk

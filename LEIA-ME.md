@@ -7,15 +7,16 @@ App minimalista de shot timer. A interface é uma página HTML offline (`app/src
 **Opção A: Android Studio**
 1. Abra esta pasta em *File > Open*.
 2. Aguarde a sincronização do Gradle (o Android Studio baixa tudo sozinho).
-3. *Build > Build Bundle(s) / APK(s) > Build APK(s)*.
-4. O arquivo fica em `app/build/outputs/apk/debug/app-debug.apk`.
+3. *Build > Generate Signed Bundle / APK* ou *Build APK(s)*.
+4. O arquivo fica em `app/build/outputs/apk/release/app-release.apk` (assinado) ou `app-debug.apk`.
 
 **Opção B: GitHub (sem instalar nada)**
-1. Crie um repositório e envie o conteúdo desta pasta.
-2. Abra a aba *Actions*, rode **Gerar APK** e baixe `shot-timer-apk` nos artefatos.
+1. Envie as alterações para o repositório (`git push`).
+2. Abra a aba *Actions*, rode **Gerar APK** e baixe `shot-timer-release-apk` nos artefatos.
 
 ## Instalar no celular
-Copie o `app-debug.apk` para o aparelho, abra e permita "instalar apps desconhecidos" quando o Android pedir. Na primeira detecção por microfone, aceite a permissão.
+Copie o `app-release.apk` para o aparelho, abra e permita "instalar apps desconhecidos" quando o Android pedir. Na primeira detecção por microfone, aceite a permissão.
+> **Dica Xiaomi (MIUI/HyperOS):** Para instalar via cabo USB no modo depuração, habilite a opção **"Instalar via USB"** nas *Opções do Desenvolvedor*.
 
 ## Como usar
 - **Iniciar**: toca o sinal depois do atraso e começa a contar. O microfone marca cada tiro e calcula os splits.

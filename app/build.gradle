@@ -14,9 +14,21 @@ android {
         versionName '1.0'
     }
 
+    signingConfigs {
+        release {
+            storeFile file('keystore/release.jks')
+            storePassword 'shottimer123'
+            keyAlias 'shottimer'
+            keyPassword 'shottimer123'
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
         }
     }
 
